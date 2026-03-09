@@ -28,5 +28,5 @@ end entity;
 architecture rtl of instruction_parser is
   type state_type is (load_data; process_word; send_list;)
     signal state : state_type;
-    constant   : std_logic_vector(7 downto 0) := x"01";
-    constant CMD_DISPLAY_PEAK : std_logic_vector(7 downto 0) := x"02";
+    constant process_word  : std_logic_vector(7 downto 0) := x"01";
+    constant send_list : std_logic_vector(7 downto 0) := x"02";
