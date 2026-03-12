@@ -25,3 +25,8 @@ entity cmdProc is
         seqDone: in std_logic;
     );
 end cmdProc;
+
+architecture tb of cmdProc is
+    
+    begin
+    end;
