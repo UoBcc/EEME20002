@@ -26,7 +26,7 @@ entity cmdProc is
     );
 end cmdProc;
 
-architecture behavoural of cmdProc
+architecture behavoural of cmdProc is
     -- constant baudRate : integer := 9600;
     type state_type is (
         INIT, START_DATA_PROCESSING, WAIT_FOR_DATA_READY, SEND_DATA, WAIT_FOR_NEXT_WORD,
@@ -42,13 +42,22 @@ architecture behavoural of cmdProc
         state_register: process(clk, reset)
         begin
             if reset = '1' then
-                curr_state <= IDLE;
+                curr_state <= INIT;
+                bcd_reg <= (others => '0');
             elsif risingedge(clk) then
                 curr_state <= next_state;
+                if valid = '1' and oe = '0' and fe = '0' then
+                    case curr_state is
+                        when GET_D1 => bcd_reg(11 downto 8) <= dataIn(3 downto 0);
+                        when GET_D2 => bcd_reg(7 downto 4)  <= dataIn(3 downto 0);
+                        when GET_D3 => bcd_reg(3 downto 0)  <= dataIn(3 downto 0);
+                        when others => null;
+                    end case;
+                end if;
             end if;
         end process;
         
-        combinational: process(all);
+        combinational: process(all)
         begin
             next_state <= curr_state;
             rxDone <= '0';
@@ -79,19 +88,19 @@ architecture behavoural of cmdProc
                 when D1 =>
                     if valid = '1' then
                         rxDone <= '1';
-                        next_state <= (IDLE) when (oe = '1' or fe = '1') else GET_D2;
+                        next_state <= (INIT) when (oe = '1' or fe = '1') else GET_D2;
                 end if;
 
                 when GET_D2 =>
                     if valid = '1' then
                         rxDone <= '1';
-                        next_state <= (IDLE) when (oe = '1' or fe = '1') else GET_D3;
+                        next_state <= (INIT) when (oe = '1' or fe = '1') else GET_D3;
                     end if;
 
                 when GET_D3 =>
                     if valid = '1' then
                         rxDone <= '1';
-                        next_state <= (IDLE) when (oe = '1' or fe = '1') else START_DATA_PROCESSING;
+                        next_state <= (INIT) when (oe = '1' or fe = '1') else START_DATA_PROCESSING;
                     end if;
 
                 when START_DATA_PROCESSING =>
@@ -99,7 +108,7 @@ architecture behavoural of cmdProc
 
                 when WAIT_FOR_DATA_READY =>
                     if seqDone = '1' then
-                        next_state <= IDLE;
+                        next_state <= INIT;
                     end if;
 
             end case;
