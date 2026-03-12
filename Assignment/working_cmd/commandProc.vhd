@@ -124,7 +124,10 @@ architecture behavoural of cmdProc is
                     end if;
                 
                 when SEND_DATA =>
-                    if 
+                    if txDone = '1' then
+                        next_state <= INIT;
+                    else
+                        next_state <= SEND_DATA;
                     end if;
 
             end case;
