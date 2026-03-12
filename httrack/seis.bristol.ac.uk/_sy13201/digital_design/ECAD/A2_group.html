@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/A2_group.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:49 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Methodology</title>
+    <link href="style.css" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="highlight/styles/default.css">
+    <script src="highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+
+  <body style="counter-reset: h1Counter 5 h2Counter h3Counter figCounter taskCounter h1IndexCounter 5 h2IndexCounter h3IndexCounter h4IndexCounter taskIndexCounter tableCounter exCounter exIndexCounter;">   
+
+      <table class="arrows">
+	<tr>
+	  <td><a href="A2_index.html"><img src="pics/l_d_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_vivado.html"><img src="pics/l_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_deliverables.html"><img src="pics/r_arw.png"></a></td>
+	</tr>
+      </table>
+	  
+
+  <ul class="noIndent">
+    <li class="h1Index"><a href="#group_work">Group Work</a></li>
+      <ul class="noIndent">
+	<li class="h2Index"><a href="#work_division">Dividing Work Within a Group</a></li>
+	<ul class="noIndent">
+	  <li class="h3Index"><a href="#group_division">Division of Work into Teams within the Group</a></li>
+	  <li class="h3Index"><a href="#team_division">Division of Work Among Team Members</a></li>
+	  <li class="h3Index"><a href="#avoid_division">Things to Avoid in Division of Work</a></li>
+	</ul>
+	<li class="h2Index"><a href="#effective_group_work">Working as a Group</a></li>
+	<li class="h2Index"><a href="#group_work_contribute">Contributing to the Group Effort</a></li>
+	<ul class="noIndent">
+	  <li class="h3Index"><a href="#own_responibility">Fulfil One's Own Responsibilities Within Group</a></li>
+	  <li class="h3Index"><a href="#other_responibility">Help Others Within Group Fulfil Their Responsibilities</a></li>	
+	</ul>
+      </ul class="noIndent">
+	<li class="h2Index"><a href="#team_difficulties">Dealing with Difficult Team / Group Mates</a></li>
+  </ul>
+
+
+	    <h1 id="group_work">Group Work</h1>
+	    
+	    <p>One of the three learning objectives of this assignment is related to group work, and learning how to effectively work within a team. You are expected to complete this assignment by working in a group of five. Section 7.1 suggests methods of distributing the work such that the work load for each student is more or less the same. You are expected to work as a group, report your results at the end of the course as a group. Every group member has an opportunity to rate the contribution of the other group members using a form of peer assessment. The view your partners have of your work and contribution will count to your final mark.</p>
+
+	    <h2 id="work_division">Dividing Work Within a Group</h2>
+
+	    <h3 id="group_division">Division of Work into Teams within the Group</h3>
+	    	    
+	    <p>The tasks in this design can be logically separated into transactions that relate to sequencing operations based on comands received via the UART (Command Processor), and transactions related to data acquisition and data processing (Data Processor). <a class="emph2">Each 5-person group should split into two sub teams to independently develop each of these components</a>. You should stick carefully to the architecture of <a href="A2_design.html#block_arch">Figure 4.1</a>, as this block-level organisation is a logical way of organising the design, and also provides a means of distributing the work equitably within the group.</p>
+	    
+	    <p>Working within the framework of the interfaces described in <a href="A2_design.html#block_arch">Figure 4.1</a> allows different members of the team to develop various parts of the design independently. Once the interface is clearly defined and understood by everybody, the implementation details of each module are not necessary in order to design other modules which interface to them. All that is required is that a given module adheres to the agreed interface protocol.</p>
+
+	    <p>In order to test either the Command Processor or the Data Processor module independently of the other, black-box implementations are provided. These can separately be instantiated within a software testbench, or synthesised. Once the two modules have the desired functionality, it should be a simple task to integrate them to produce the final working design.</p>
+
+	
+
+	    <div class="note">
+	      <ul>
+		<li>The test benches available in the source bundle for Assignment will be used to check your code, and therefore you should follow the same port interface definitions.</li>
+		<li>As the number of students in the class is not always divisible by 5, there may be a few groups with five students each. These groups should contact one of the Lecturers to ask for further guidelines if they feel that they need it.</li>
+	      </ul>
+	    </div>
+
+
+	    <h3 id="team_division">Division of Work Among Team Members</h4>
+
+	    <p>It is very important that every team member takes an equal share of the development work. This means that you should contribute equally to designing, developing, testing and debugging modules, as well as to report writing. Please note that only one report is required in the entire project, and the majority of the deliverables are design artefacts.</p>
+
+
+	    <div class="note">
+	      <ul>
+		<li>Successful team work will result from division of work based on required functionalities where one person is responsible for implementation of modules / parts of modules from simulation to synthesis. It also means that each group member gets to experience the full range of activties spanning design planning, implementation, simulation, synthesis and verification.</li>
+	      </ul>
+	    </div>
+
+	    <h3 id="avoid_division">Things to Avoid in Division of Work</h3>
+	    
+	    <p>The following strategies all lead to lopsided contributions and should be strictly avoided.</p>
+
+	    <ul>
+	      <li>Dividing the work based on simulation or synthesis e.g. one person takes care of simulation, the other takes care of synthesis. This makes no sense as the two are very tightly intertwined.</li>
+	      <li>Allocating one person to compose just the report.</li>
+	      <li>Allocating one person to do just debugging. While development and testing is often separated in industry, in this project you have been supplied with comprehensive test benches. You are very welcome to modify and enhance the supplied test benches, which should lead to increased understanding and appreciation of the intricacies of VHDL, but this should not be at the expense of development.</li>
+	      <li>Not having clearly defined roles for each team member.</li>
+	      <li>Having one person loosely associated with both teams, for example with the role of troubleshooting issues in both modules. This is often an excuse for covering up the non-performance of one or more team members.</li>
+	      <li>Changing roles and responsibilities of a group member without due consultation within the group.</li>
+	    </ul>
+
+	    <div class="note">
+	      <ul>
+		<li>The above are all examples from unsuccessful past attempts. Please ensure that every team-member
+has a development role and takes responsibility for a substantial portion of the design.</li>
+	      </ul>
+	    </div>
+
+	    <h2 id="effective_group_work">Working as a Group</h2>
+	    
+	    <p>The first scheduled session should be the date of your first group meeting. At this meeting you should discuss the following:</p>
+	    
+	    <ol style="margin-left:15px">
+	      <li>Division of work within the group, i.e. who does what (see <a href="#work_division">Section 6.1.1</a>).</li>
+	      <li>Means of communication within the group. Blackboard has a group space, where you can upload files, exchange messages etc., but you may prefer to use another platform. This is fine as long as everybody within the group is comfortable with the arrangement. However please make sure that all important communications are sent to and from your official University e-mail accounts.</li>
+	      <li>Project plan and time line for meetings, internal and external deadlines, and milestones. The basic requirement in Assignment is to develop the Command Processor and Data Processor separately based on the prescribed interface specifications, and then integrate the two. Team members within each of the two teams in the group celarly have to work closely together, but there also has to be communication between the teams to ensure that the interface specifications have been clearly understood by both teams. 
+		<p></p>
+		<a class="emph2">It is highly recommended that a simple project plan be drawn up, with tasks, milestones, and meeting dates.</a> Milestones or deliverables should be associated with each meeting date to monitor progress, even if the deliverable is only a progress update. This project plan should be part of the report submitted as part of the report.</li>
+	    </ol>
+	    
+	    <p>After the division of work has been discussed and initial work plan drawn up, regular meetings should be held according to the agreed schedule. Please note that all scheduled sessions are mandatory, and should in the first instance serve as meeting dates. If your group has members that are from different cohorts, and it appears difficult to set up joint meetings, please contact a Lecturer for advice.</p>
+	    
+	    <h2 id="group_work_contribute">Contributing to the Group Effort</h2>
+
+	    <p>There are two essential aspects to each individual's contributions within a group, as described below.</p>
+	    
+	    <h3 id="own_responibility">Fulfil One's Own Responsibilities Within Group</h3>
+
+	    <h4>Effective communication</h4>
+
+	    <p>You have to communicate effectively with your group members, including participating in group discussions, turning up at scheduled sessions, and responding to e-mails and other communications from group members in a timely manner. If you have any issue with an internal deadline or have trouble completing a task, it is your responsibility to let your group members know, and come to some alternate arrangement.</p>
+
+	    <h4>Carry out technical tasks</h4>
+	    
+	    <p>You have to complete the technical tasks that have been assigned to you within prescribed time frames including developing code for modules that are your responsibility, developing code for shared endeavours including test benches, and testing, analysing and trouble-shooting modules and code from other group members to facilitate integration.</p>
+
+	    <h3 id="other_responibility">Help Others Within Group Fulfil Their Responsibilities</h3>
+
+	    <p>All group members may not have the same level of proficiency in digital design and VHDL-based design entry, and thus different individuals may not work at the same speed at the beginning. If you are ahead of the plan, please give your teammate the opportunity to learn and catch up, and make a useful contribution. This is important for both you and your team-mate: for your team-mate, as they should learn the very important skills that are developed in this project, and for you, so that somebody else does not take credit for what you have done.</p>
+
+	    <h2 id="team_difficulties">Dealing with Difficult Team / Group Mates</h2>
+
+	    <p>Efficient and professional collaboration within a group with diverse skill sets (eg: software or hardware backgrounds) is an essential skill for any aspiring Engineer. If your group isn't functioning properly, in the first instance it is your responsibility to treat every team mate with respect, come to an effective working arrangement and fulfil your own responsibilities. Team discussions, structural divisions of the design and other operational details will not be micro-managed, and are left to the initiative of each group.</p>
+
+	    <p>However if any team or group find that a member or members do not fulfil their responsibilities and/or do not turn up at meetings and otherwise participate, or violate the covenant of respect, consideration and professionalism that affect their own ability to work effectively, the following procedure should be adopted:</p>
+
+	    <ol style="margin-left:15px">
+	      <li>Politely inform your team mate via his or her University e-mail address that in your opinion they are not contributing fairly or / and affecting your ability to contribute and suggest a meeting to discuss the issue. In the meeting address your concerns in a professional way, and try to come to a resolution.</li>
+	      <li>If the above does not result in a satisfactory resolution, inform one of the course Lecturers as soon as possible. It is important that you let a Lecturer know of any issues early, as a fair and transparent process needs to be followed to ensure the views of all parties are heard. Quite often this involves a meeting with a Lecturer present, and prescribed timelines for subsequent work, with communications being copied to the Lecturer.</li>
+	    </ol>
+
+	    <div class="note">
+	      <ul>
+		<li>As much as possible you should try to resolve issues internally, but it is very important that you bring any serious concerns to the notice of a Lecturer in a timely manner. For example, informing a Lecturer about an under-performing team mate in the last week before the deadline will not leave time for any sort of satisfactory resolution.</li>
+	      </ul>
+	    </div>
+
+
+      <table class="arrows">
+	<tr>
+	  <td><a href="A2_index.html"><img src="pics/l_d_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_vivado.html"><img src="pics/l_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_deliverables.html"><img src="pics/r_arw.png"></a></td>
+	</tr>
+      </table>
+
+  </body>
+
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/A2_group.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:49 GMT -->
+</html>

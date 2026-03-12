@@ -1,0 +1,304 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/synchronous.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:48:07 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Digital Synchronous System Design</title>
+    <link href="style.css" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="highlight/styles/default.css">
+    <script src="highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+
+  <body style="counter-reset: h1Counter 5 h2Counter h3Counter figCounter taskCounter 7 h1IndexCounter 5 h2IndexCounter h3IndexCounter taskIndexCounter 7 tableCounter exCounter 6 exIndexCounter 6;">  
+
+    <table class="arrows">
+      <tr>
+	<td><a href="index.html"><img src="pics/l_d_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="sequential.html"><img src="pics/l_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="refs.html"><img src="pics/r_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="A2_index.html"><img src="pics/r_d_arw.png"></a></td>
+      </tr>
+    </table>
+
+
+
+  <ul class="noIndent">
+    <li class="h1Index"><a href="#synchronous">Digital Synchronous System Design</a></li>
+    <ul class="noIndent">
+      <li class="h2Index"><a href="#synchTiming">Principles of Timing in Synchronous Systems</a></li>
+      <li class="h2Index"><a href="#readInput">Reading Input Data Values</a></li>
+       <ul class="noIndent">
+	 <li class="h3Index"><a href="#readInput_level">Reading Input Levels</a></li>
+       </ul>
+      <li class="taskIndex"><a href="#task_regInput_patternRecog1">Register the Inputs of Pattern Recogniser 1</a></li>      
+      <ul class="noIndent">
+	<li class="h3Index"><a href="#readInput_edge">Reading Input Edges</a></li>
+      </ul>
+      <li class="h2Index"><a href="#patternRecog2">Implementing Pattern Recogniser 2</a></li>
+      <li class="exIndex"><a href="#ex_patternRecog2_stateDiag">State Transition Diagram for Pattern Recogniser 2</a></li>
+      <li class="taskIndex"><a href="#task_patternRecog2_sim">Implementing Pattern Recogniser 2 as a FSM</a></li>
+      <li class="exIndex"><a href="#ex_patternRecog2">Source Code for Pattern Recogniser 2</a></li>
+      <li class="h2Index"><a href="#datapath_system">Designing a System Comprising a Datapath and Controller</a></li>
+      <li class="taskIndex"><a href="#task_dataSampler">Implementing the Data Sampler</a></li>
+      <li class="exIndex"><a href="#ex_dataSampler">Implementation of Controller for Data Sampler</a></li>
+      <li class="h2Index"><a href="#tips">General Tips and Techniques</a></li>
+      <li class="h2Index"><a href="#summary">Summary</a></li>
+    </ul>
+  </ul>
+	  
+
+    <h1 id="synchronous">Digital Synchronous System Design</h1>
+
+	  <p>The learning objectives for this section are:
+	    <ul>
+	      <li>To understand how to read input data under a given protocol;</li>
+	      <li>To understand how to model a synchronous system with a data path and a controller;</li>
+	    </ul>
+	  </p>
+
+	  <p>Up to this point we have been looking at the various combinational and sequential subcomponents that
+make a full system. In this section we will look at a complete example, and <a class="emph2">design practices outlined here should serve as the template for the exercises in the main Assignment</a>.</p>
+
+  <h2 id="synchTiming">Principles of Timing in Synchronous Systems</h2>
+	  <p>When you did the example of Pattern Recogniser 1, you would have noticed that data needs to be available some time before the rising clock edge in order for the flip-flop to correctly read in the data. For example, consider the waveforms of Fig. 6.1.</p>
+
+    <figure class="numFig">
+      <img src="pics/ff_timing.png" alt="Flip-flop timing" style="width:600px;"/>
+      <figcaption>Timing waveforms for registers.</figcaption>
+    </figure>  	  
+
+      <p>The arrows indicate the relevant data value that is read for a given clock edge, and the corresponding
+output data value. The key point here is that unless the input data is valid some time before the clock edge, the data will not be correctly read.</p> 
+
+      <p>How much time is necessary between the input data being valid and the clock edge?</p> 
+
+      <p>In the implementations so far, any non-zero physical time is adequate, but in reality it needs to be greater than a time called the <a class="emph1">setup time</a> that is a characteristic of the transistor-level circuit and the fabrication technology. Actually registers (flip-flops) have three fundamental timing metrics: the <a class="emph1">setup time (t<sub>su</sub>)</a>, <a class="emph1">hold time (t<sub>hold</sub>)</a>, and <a class="emph1">clock-to-output propagation delay (t<sub>c-q</sub>)</a>. These timing metrics are illustrated in Fig. 6.2. </p>
+
+	  
+    <figure class="numFig">
+      <img src="pics/ff_timingMetrics.png" alt="Flip-flop timing metrics" style="width:600px;"/>
+      <figcaption>Timing waveforms showing setup and hold times and propagation delay of flip-flops.</figcaption>
+    </figure>  	  
+
+    <p>The setup time is the time that the data needs to be ready before the clock edge. If this condition is violated, it cannot be guaranteed that the data is read and saved properly. The hold time is the amount of time that the data needs to be held stable after the clock edge. If the data on the in node changes too soon after the clock edge, then the hold time condition is violated, and again it cannot be guaranteed that the data is read and saved properly. Finally, the propagation delay is the amount of time after the clock edge that it takes for the output to be valid with the new data.</p>
+
+    <div class="emphBox">
+      <p>In register implementations so far, the setup and hold times and propagation delay were not specified; i.e., they were ideal registers. If we knew the delay of a flip-flop when implemented in our target FPGA, we could potentially model it as an assignment delay to get a more accurate idea of the timing in a simulation. However, then we would have to model the delay of every logic gate to make the timing reasonably accurate. Afterwards, we would have to remove all assignment delays in order to synthesize the code, as clearly assignment delays are not synthesiable. Luckily, this is not necessary as all synthesis tools are able to analyse the timing automatically. After mapping the prescribed logic to hardware, the tool is able to work out all timing paths between registers to check for setup- and hold-time violations. </p>
+    </div>
+   
+
+  <h2 id="readInput">Reading Input Data Values</h2>
+
+  <h3 id="readInput_level">Reading Input Levels</h3>
+
+      <p>Any data on system inputs that have to be read synchronously, such as that on <a class="unix">x</a> for the pattern recogniser, have to satisfy setup- and hold-time requirements with respect to the clock edge. If you recall, the output of the Mealy machine went high for a short time between essentially because the input changed close to a clock edge. Using the input to directly drive logic that determines the output results in glitches and is not satisfactory for that reason.</p> 
+
+      <p>Instead, the accepted way to process incoming synchronous data - i.e., data that is valid one setup time before every rising clock edge (or falling clock edge for falling-edge-triggered logic), and holds its value for one hold time after the edge - is to load it into a register, so that the value stays constant for an entire cycle, regardless of whether the input changes or not <a class="emph1">outside</a> the setup- and hold-time requirements. This can be done by simply connecting <a class="unix">x</a> to the input of a flip-flop, and using the output of the flip-flop as the main input signal to the rest of the system. In the example of the pattern recogniser, assume that a signal called <a class="unix">x_reg</a> exists, and this is the signal read by all the downstream combinational processes. The following additional code is all that's required.</p>  
+
+      <pre>
+	<code class="vhdl">
+	  PROCESS(clk)
+	  BEGIN
+	    IF clk'event AND clk='1' THEN
+	      x_reg <= x;
+	    END IF;
+	  END PROCESS;
+	</code>
+      </pre>
+      
+      <div class="taskBox">  
+	<a class="task" id="task_regInput_patternRecog1">Register the Inputs of Pattern Recogniser 1</a>
+	<ul>
+  <ol class="taskItem">
+	  <li>Load the Mealy implementation and register the inputs as per the above explanation. Run a new simulation.</li> 
+	  <li>Note how the <a class="unix">x_reg</a> signal, which is the input to the rest of the system, always remnains steady for one entire clock cycle at least. However, you can also see that registering a signal always introduces a delay of one cycle, as the value is read in on a clock edge, and <a class="emph1">then</a> passed to the rest of the system.</li>
+	</ol>
+  </ul>
+      </div>
+      
+  <h3 id="readInput_edge">Reading Input Edges</h3>
+
+      <p>In addition to registering inputs to ensure consistent timing behaviour, registering a signal is also a common technique whereby a one-cycle delay is deliberately introduced, which may be useful for various reasons. For example, you may want to monitor transitions in signals, rather than their level, for control purposes. The single phase handshaking protocol used in the main Assignment for instance requires exactly this. Let's look at this in a bit more details.</p> 
+
+      <p>Assume that <a class="unix">ctrlIn</a> is a signal that conveys information <a class="emph1">based on transitions</a>; i.e., what is signficant is a rising or falling edge of the control signal, rather than whether the signal is high or low. How do you monitor transitions on <a class="unix">ctrlIn?</a></p>
+
+      <p>The first idea that might suggest itself is to simply use the <a class="unix">'EVENT</a> attribute on <a class="unix">ctrlIn</a> i.e., have a <a class="unix">IF ctrlIn'EVENT THEN</a> clause, such as we do for the clock. This would work fine in simulation; however, think about how this can be synthesised. The only digital gate that is edge-triggered is a flip-flop. But connecting <a class="unix">ctrlIn</a> to the clock (control) input on a flip-flop is by itself meaningless; what do we connect to the data input, and how do we actually monitor the transition? Further, connecting anything other than the clock to the control input of a flip-flop is fraught with danger, as we have no control over the delay from the input pin to the input of the flip-flop. The clock is a very special signal, and the clock net is routed over the entire chip with special techniques to ensure that its latency is minimised and balanced over the entire chip.</p>
+
+      <p>Instead, a simple and clever way to translate a signal edge to a signal level, is to take the XOR of the signal whose transitions we are monitoring, and a one-cycle delayed version of it. Consider Fig. 6.3. As can be seen, both low-to-high and high-to-low edges are indicated by the signal at the bottom, with the arrows showing the edge we want to detect, and the corresponding signal high period.</a> 
+   
+
+    <figure class="numFig">
+      <img src="pics/edgeDetect.png" alt="Detecting signal edges." style="width:800px;"/>
+      <figcaption>Detecting signal edges by converting edges to levels.</figcaption>
+    </figure>  	  
+
+
+    <h2 id="patternRecog2">Implementing Pattern Recogniser 2</h2>
+    
+    <p>In the implementation of the first pattern recogniser, you most likely defined states based on recognising
+individual bits in the specified sequence, for example init, first, second etc. If you did indeed adopt such a scheme, you can appreciate that it is not scalable. For example, assume you had to recognise a sequence in a 64 bit word; clearly, it would be very tedious to define a state machine with 64 states, and not the best design regardless of whether or not you employed an HDL for design entry.</p> 
+    
+    <p>In this second example, the specifications are that the serial I/O interface is the same, but the pattern to recognise is a sequence of 15 zeros followed by 17 ones in a 32 bit sequence. When the pattern has been recognised, <a class="unix">y</a> should go high for exactly one clock cycle where a clock cycle is made up of a high and low phase with a 50% duty cycle, and go low in the next cycle.</p>
+
+    <div class="exBox">  
+      <a class="ex" id="ex_patternRecog2_stateDiag">State Transition Diagram for Pattern Recogniser 2</a>		  
+    <ul><ol class="exItem">
+	<li>Draw the FSM state transition diagram for the above specification based on either the Mealy or Moore models. 
+  </ul>
+    <div class="emphBox"><a class="emph3">Hint</a>: You can use two counters with reset and enable signals to count the ones and zeros. The counters will increment on a clock edge as long as reset is <a href="terms.html">deasserted</a>, and enable is <a href="terms.html">asserted</a>. You can suspend counting by deasserting the enable signal. An example of a down counter with an enable is given in the description of a <a href="sequential.html#ff_clockEnable">flip-flop with a clock-enable</a> capability. These control signals will be driven by the FSM, based on the current state for a Moore machine, and current state and inputs for a Mealy machine. To ensure that the output stays high for at least a cycle, register the <a class="unix">x</a> input first.  You don't have to draw the state machine for the counters but show the signals that control these counters.</div>
+	  <a class="answer">Answer Quiz 1, Question 15</a>.
+	</li>
+      </ol>
+    </div>
+
+    <br>
+
+    <div class="taskBox">  
+      <a class="task" id="task_patternRecog2_sim">Implementing Pattern Recogniser 2 as a FSM</a>		  
+    <ul>
+      <ol class="taskItem">
+	  <li>Construct a VHDL model of Pattern Recogniser 2 based on your designed FSM.</li>
+	  <li>Test it with the supplied testbench, ensuring your design compiles with no changes in the testbench.</li>
+      </ol>
+    </ul>
+    </div>
+
+    <br>
+
+      <div class="exBox">  
+	<a class="ex" id="ex_patternRecog2">Source Code for Pattern Recogniser 2</a>		  
+  <ul>
+  <ol class="exItem">
+	  <li>Upload the source code for your module. <a class="answer">Answer Quiz 1, Question 16</a>.</li>
+	</ol>
+</ul>
+  </div>
+
+    <h2 id="datapath_system">Designing a System Comprising a Datapath and Controller</h2>
+    
+    <p>Thus far, the main examples have focused mostly on the controller and implementing it as a finite-state machine. Many digital systems have requirements for performing arithmetic operations on data that are more complex than the simple comparison operations used to check whether the input was a <a class="unix">'0'</a> or <a class="unix">'1'</a> in the pattern recognition examples. Here we will look at an example that includes arithmetic operators.</p>
+
+    <p>When data manipulation is required, the logic is always organised into a <a class="emph1">datapath</a>, where the data is manipulated, and a controller, whose job it is to sequence the operations in the datapath, such as select certain inputs at certain times within the datapath, and assert signals to read and write I/O. When describing digital functionality in VHDL, the target technology (e.g.: FPGA, ASIC etc.) and synthesis tool dictate the coding style to some extent, but generally, RTL is always written following the same template, with the controller being implemented as a FSM. Certainly you should always follow this style when using Xilinx Vivado for synthesis, as you will be doing throughout the unit.</p>
+
+    <p>The specifications for this example is that we need to add and multiply five 8-bit operands <a class="unix">a</a>, <a class="unix">b</a>, <a class="unix">c</a>, <a class="unix">d</a> and <a class="unix">e</a>, that are available synchronously on five separate 8-bit input ports, where the operands are valid after a positive clock edge. The functionality (i.e., what we want to do to the data) of this data sampler is defined by <a class="unix">f</a> and <a class="unix">g</a>, where the output is to be presented on two 16-bit output ports:</p>
+
+    <div class="emphBox">  
+      <p class="unix">f <= (a+b)*e;<br>
+      g <= (a+b)*(c+d);</p>
+    </div>
+ 
+    <p>The interfacing is governed by a synchronous protocol (i.e., the control signals are aligned with respect to the clock). The system has an output signal, <a class="unix">outValid</a>, that goes high for one cycle when both <a class="unix">f</a> and <a class="unix">g</a> are valid. In the cycle following the assertion of <a class="unix">outValid</a>, new input data will be read.</p> 
+
+    <p>There are many ways in which this functionality can be implemented, but let's assume that we have a constraint of one adder and one multiplier for this operation (as they are both area and power intensive components). The data path can be organised as shown in Figure 5.4.</p> 
+
+    <figure class="numFig">
+      <img src="pics/datapath.png" alt="Flip-flop timing" style="width:600px;"/>
+      <figcaption>Datapath for example design with timing diagram.</figcaption>
+    </figure>  	  
+    
+
+    <div class="note">  
+      <ul>
+	<li>Note that these registers have enable controls designated as <a class="unix">en</a>. For the flip-flop to work in normal mode, the enable signal has to be asserted. If they are deasserted, the flip-flop will simply ignore the clock inputs and keep the output unchanged.</li>
+      </ul>
+    </div>
+
+    <p>Because we have to use one adder and one multiplier, clearly we have to temporarily store some intermediate
+data in registers, and reroute those intermediate results to the adder and multiplier inputs in different
+cycles. The select signals <a class="unix">s1</a>, <a class="unix">s2</a> and <a class="unix">s3</a> controlling the MUXs and the enable signals <a class="unix">en1</a>, <a class="unix">en2</a>, <a class="unix">en3</a>, <a class="unix">en4</a> and <a class="unix">en5</a> shown in red that control the registers have to be driven to the correct values in order for the data to be correctly transformed, and their values are very precisely prescribed for any
+given cycle.</p>
+
+    <p>Assume that inputs become available on the data ports in cycle <a class="emph1">i</a>. Therefore, in cycle <a class="emph1">i</a>, <a class="unix">s1</a> and <a class="unix">s2</a> have to be driven to the values that choose the left-hand-side input, and <a class="unix">en1</a> and <a class="unix">en2</a> have to be asserted ensuring that <a class="unix">a</a> and <a class="unix">b</a> are loaded into the registers <a class="unix">r1</a> and <a class="unix">r2</a> respectively.</p>
+
+    <p>In cycle <a class="emph1">i+1</a>, the control signal <a class="unix">s3</a> should choose the left-hand-side input and <a class="unix">en3</a> and <a class="unix">en4</a> need to be asserted, so that the register R4 is loaded with the value of <a class="unix">a+b</a>, and R3 with <a class="unix">e</a>. In the same cycle, <a class="unix">s1</a> and <a class="unix">s2</a> will chose their right-hand side inputs, and <a class="unix">en1</a> and <a class="unix">en2</a> are asserted so that R1 and R2 are now loaded with <a class="unix">c</a> and <a class="unix">d</a>.</p> 
+
+    <p>In cycle <a class="emph1">i+2</a>, <a class="unix">en5</a> is asserted so that R5 is loaded with the value of <a class="unix">(a+b)*c</a>. In the same cycle, <a class="unix">s3</a> chooses the right-hand side input, and <a class="unix">en3</a> is asserted so that R3 is loaded with <a class="unix">c+d</a>. R4 still holds <a class="unix">a+b</a>.</p> 
+    
+    <p>In cycle <a class="emph1">i+3</a>, <a class="unix">en6</a> is asserted so that R6 is loaded with the value of <a class="unix">(a+b)*(c+d)</a>. The sequence in which the registers are loaded with the different values is shown in the timing diagram included in Fig. 6.4.</p>
+
+    
+   <div class="taskBox">  
+      <a class="task" id="task_dataSampler">Implementing the Data Sampler</a>		  
+    <ul>  <ol class="taskItem">
+	  <li>Create a new project and add the sources found in the folder named task6.4J.</li>
+	  <li>The actual algorithm to generate numbers in Data Source is based on simple addition / subtraction. Look at the source code for the Data Sampler. The data path is defined in various processes, corresponding exactly to the schematic of Fig. 6.4.
+	  </li>
+	    
+	  <li>Based on the timing diagram shown in Fig. 6.4, implement the <a class="unix">nextStateLogic</a> and <a class="unix">ctrlOut</a> processes of the FSM, where you have to define the necessary states and assign the values of the control inputs <a class="unix">R1_sel</a>, <a class="unix">R2_sel</a>, <a class="unix">R3_sel</a>, <a class="unix">R1_en</a>, <a class="unix">R2_en</a>, <a class="unix">R3_en</a>, <a class="unix">R4_en</a>, <a class="unix">R5_en</a> and <a class="unix">R6_en</a>, and the output <a class="unix">outValid</a> in each state. Check with the supplied testbench that your implementation works.</li>
+
+      </ol>
+    </ul>
+    </div>
+   
+   <br>
+
+   <div class="exBox">  
+     <a class="ex" id="ex_dataSampler">Implementation of Controller for Data Sampler</a>		  
+    <ul><ol class="exItem">
+       
+       <li>Upload your source code for the Data Sampler component. <a class="answer">Answer Quiz 1, Question 17</a>.</li>
+     </ol>
+    </ul>
+    </div>
+
+   <h2 id="tips">General Tips and Techniques</h2>
+   <p>The last example we looked at, the Data Sampler, is the most realistic example we have considered up to now, and is to be considered as showcasing best practice when writing RTL. Some of the key points to keep in mind when writing VHDL code (or Verilog for that matter) are summarised below.</p>
+
+   <div class="emphBox"><a class="emph2">Points to remember:</a>
+     <ul>
+       <li>Always remember that VHDL is not a programming language that is meant to be compiled and run on a processor. Its purpose is to model hardware, and any statement you write has hardware implications. The only exception is when writing testbenches. Distinguish between synthesisable constructs, and unsynthesisable constructs which have no meaning in hardware.</li>
+       <li>Because VHDL is meant to model hardware, concurrency is built in to the execution thread. Signal assignment statements and process always execute concurrently.</li> 
+       <li>Signals are the main mechanism by which information is exchanged between communicating processes, and signal assignments always incur a delay.</li>
+       <li>Within a process body, statements execute sequentially, and variable (declared internally within a process) assignments incur no delay.</li>
+       <li>Inferring combinational logic requires that you define the value of the driven signal in every branch of conditional clauses, either <a class="unix">IF-THEN-ELSE</a> or <a class="unix">CASE</a> structures. Sometimes the most convenient way to do this to assign some default values at the beginning, and overwrite those default values in select branches. The <a class="unix">WHEN OTHERS</a> clause is also useful in this regard.</li>
+       <li>Sequential logic is inferred by incomplete assignments, i.e., the opposite of the above, deliberately omitting a selection branch in conditional logic. However these have to be within strictly defined templates, and a level-sensitive condition for assignment results in a latch, and an edge-sensitive condition results in a flip-flop. The templates also generally support an asynchronous (or synchronous) reset, and a clock-enable.</li>
+       <li>Do not mix combinational and sequential logic in the same process.</li>
+       <li>Always adopt the templates introduced in this assignment. These include concurrent constructs for multiplexers that can be defined outside process bodies, behavioural style templates for inferring different types of combinational elements and behavioural style templates for sequential logic elements and behavioural style templates for implementing finite state machines. Processes implementing combinational logic should always have all read signals, for example signals that appear on the right-hand side of an assignment or are read inside a conditional clause, need to be in the sensitivity list. Only the clock and any asynchronous resets  should appear in the sensitivity lists of processes modelling sequential logic. Synchronous resets are not needed in the sensitivity list as they are read inside the clocked body.</li>
+       <li>Adopt a modular approach so that all major components are implemented as separate entities, and within the architecture body for a given component, all major subcomponents are modelled as separate processes. Avoid very long process bodies. Modular in this context essentially means that each logical component, be it a process, architecture or perhaps function or procedure, should do one thing and one thing only. Do not mix funtionalities within the same component. For example, don't have a module that either adds or shifts depending on a control signal value. There is no component in hardware that can add and shift.</li>
+       <li>Always design your circuit (assuming it is of non-trivial complexity) to comprise a datapath and a controller, where the controller is a FSM. Wherever possible, try to draw a state-transition diagram or a timing diagram to aid in constructing the FSM.</li>
+       <li>For numeric operations, use the <a class="unix">NUMERIC_STD</a> package from the <a class="unix">IEEE</a> library</li>
+       <li>The top three rules to facilitate the generation of hazard free logic are, in order: avoid latches, avoid latches, and avoid latches.</li>
+     </div>
+
+
+   <h2 id="summary">Summary</h2>
+   
+   <p>The following points were covered in this section. 
+     <ul>
+       <li>Synchronous systems have storage elements or registers, i.e., edge-triggered flip-flops, that are updated once every clock cycle. For flip-flops to be updated on a clock edge, the data needs to be ready at the input one setup time before the clock edge and held steady for one hold time.</li> 
+       <li>Inputs should be <a class="emph1">registered</a>, i.e., loaded into a register, to ensure they only change at the beginning of the clock cycle and remain steady for the remainder of the cycle to avoid glitches.</li>
+       <li>Registering a signal effectively introduces a one-cycle delay between the input and output of the register.</li>
+       <li>Detecting signal transitions - i.e., rising or falling edges - on a signal is accomplished by taking the exclusive-or (XOR) of the signal and a one cycle delayed (i.e., registered) version of it.</li>
+       <li>Many digital systems require arithmetic operations to be carried out on data. Such a digital system is always organised such that there is a data path comprising the arithmetic, storage and switching elements, and a controller that sequences the operation of the elements in the data path.</li>
+      <li>Now you should be able to use Vivado IDE efficiently for simulation. In the main Assignment, further functions will be explored to complete the whole design workflow.</li>
+      </ul>
+   </p>  
+     
+ 
+
+   
+
+    <table class="arrows">
+      <tr>
+	<td><a href="index.html"><img src="pics/l_d_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="sequential.html"><img src="pics/l_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="refs.html"><img src="pics/r_arw.png"></a></td>
+ 	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="A2_index.html"><img src="pics/r_d_arw.png"></a></td>
+     </tr>
+    </table>
+
+
+  </body>
+
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/synchronous.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:48:11 GMT -->
+</html>

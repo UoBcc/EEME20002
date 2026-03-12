@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/A2_specs.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:28 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Introduction to Assignment</title>
+    <link href="style.css" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="highlight/styles/default.css">
+    <script src="highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+
+  <body style="counter-reset: h1Counter 1 h2Counter h3Counter figCounter taskCounter h1IndexCounter 1 h2IndexCounter taskIndexCounter tableCounter exCounter exIndexCounter;">   
+
+      <table class="arrows">
+	<tr>
+	  <td><a href="A2_index.html"><img src="pics/l_d_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_preamble.html"><img src="pics/l_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_coms.html"><img src="pics/r_arw.png"></a></td>
+	</tr>
+      </table>
+	  
+
+  <ul class="noIndent">
+    <li class="h1Index"><a href="A2_specs.html">Functional Specifications</a></li>
+    <ul class="noIndent">
+      <li class="h2Index"><a href="A2_specs.html#overview">Overview</a></li>
+      <li class="h2Index"><a href="A2_specs.html#commands">Commands</a></li>
+      <li class="h2Index"><a href="A2_specs.html#print_output">Printing Output</a></li>
+      <li class="h2Index"><a href="A2_specs.html#check_understanding">Check Understanding of Specifications</a></li>
+    </ul>
+  </ul>
+
+	  <h1 id="func_specs">Functional Specifications</h1>
+
+	    <h2 id="overview">Overview</h2>
+	    <p>The task of the Assignment is to design and implement a peak detection system with modules, including the peak detector, data source and communication links based on UART. With an external computer, multiple commands can be sent through the UART link to control the peak detector to implement the required functions. Figure 2.1 provides the overview of the whole system. </p>
+
+	    <figure class="numFig">
+	      <img src="pics/pkDetect_sys.png" alt="Peak Detector System" style="width:600px;"/>
+	      <figcaption>Peak detector system overview</figcaption>
+	    </figure>
+
+	    <p>On the PC, the commands typed into the keyboard and the output received by the PC is captured and displayed in a <a href="terms.html#VT100">VT100</a> terminal emulator, which is similar to the command terminal in Unix or DOS. The utility we will use that emulates a VT100 terminal is called PuTTY. Configuration of PuTTY is covered <a href="#putty">later</a>.</p>
+	    
+	    <p>All keystrokes that are typed in the PuTTY terminal are sent to the board through UART and captured by the <a class="emph1">Receiver</a> (Rx for short) in the UART. The recevived commands need to be verified,and then communicated to the peak detector module. All outputs from the detector system are communicated to the PC terminal via the <a class="emph1">Transmitter</a> (Tx for short) in the UART. </p>
+
+	    <p>All of the logic in the design including the UART and data generator will be implemented in an FPGA device from Xilinx called <a class="emph1">Artix 7</a>. This device sits on a full development board which provides a 12 MHz clock as well as various I/O and other peripheral and control circuitry. The UART link is provided through a mini USB port and implements the RS232 protocol which is purely serial. The input and output serial lines are available at two I/O pins in the FPGA device. Details of the RS232 protocol are provided <a href="A2_coms.html#uart_overview">later</a> in the document, and the VHDL code for both the Rx and Tx are provided.</p>
+	    
+	    <p>The data generator, for which the code is also provided, has access to 500 bytes of data, and will provide a byte at a time upon request, with requests governed by a 2-phase handshaking protocol. Details will again be provided later in the document, but essentially, the data generator has an input control line and an output control line. When it sees a <a class="emph1">transition</a> on the input control line (i.e. a '0' to '1' or '1' to '0' transition), it will provide a new byte on 8 parallel data lines, and change the value of its output control line; i.e. if it was '0' previously, it will transition to '1', and vice-versa. This transition on its output control line is a signal to the data acquisition module that data is valid. After the data has been latched, the consumer should effect a transition on the input to the data generator to request a new byte. Once all 500 bytes have been provided, the data generator will revert to the first byte in the sequence and keep cycling through the sequence.</p>
+	   
+	    <p>The task of the peak detector is to process a number of words as typed in by the user in the terminal, and return the peak byte along with the three bytes that precede and follow it in the sequence, with the value interpreted according to unsigned or signed formats based on your group number. It should also return the index of the peak byte in the sequence. If multiple peaks are detected in a single data sequence, the first is to be retained. The design is to be implemented on the <a class="emph2"> CMOD A7</>board with a Artix 7 device running on a 100 MHz system clock (the 100 MHz clock is generated from the 12 MHz on-board clock by using a clock-conditioning IP block). It should use the 3 supplied modules with no modifications:<a class="emph1"> a Receiver</a> and <a class="emph1">Transmitter</> that implement the RS232 protocol, and a <a class="emph1">Data Generator</a> that supplies a byte at a time under the control of a 2-phase handshaking protocol.</p>
+
+	    <p>The functionality described above is described in more detail in the next few sections.</p>
+
+	    <h2 id="commands">Commands</h2>
+
+	    <h3>Process Data Sequence</h3>
+
+	    <p>Processing of a data sequence is initiated by the start command "aNNN" or "ANNN" typed in to the terminal, where "NNN" are 3 decimal digits, ranging from "000" to "999". This number is simply the number of words to be processed. For example, "a500" means process 500 bytes. Hence the maximum number of words that can be processed is 999. Termination of a character string by hitting the &lt;ENTER&gt; key is not required. If the letter "A" or "a" is followed by 3 decimal digits in sequence, regardless of what keystrokes preceded "A" or "a", the command is valid. Examples of a valid start string are "A500", "a067" and "hjhgjga945". The last is valid as the last four 4 characters define a valid start command. However the string "A56k7" is not a valid command, as 3 decimal digits do not follow the character "A" in an uninterrupted sequence. For the same reason, neither is "a55". </p>
+
+	    <p>Upon detection of a valid start command, the number of bytes specified should be processed without interruption. Each byte should be printed in hexadecimal format. The start command is valid at any point as long as data processing is not taking place. The behaviour when a user command is typed in the middle of processing a sequence is undefined.</p>
+
+	    <h3>List Results</h3>
+
+	    <p>Upon completion of processing of a data sequence, the following commands are valid:</p>
+	    <ul>
+	      <li>"P" or "p" to list the peak byte in hexadecimal format followed by the index of that byte from 0 to 998 in the sequence of bytes acquired from the data generator. The index should be printed as decimal digits;</li>
+	      <li>"L" or "l" to list in hexadecimal format the 3 bytes preceding the peak byte in the order received, the peak byte itself, and the 3 bytes following the peak byte in the order received, i.e. a total of 7 bytes.</li>
+	    </ul>
+
+	    <p>These commands should not result in any action if a data sequence has not been processed prior to receiving them. The commands should always relate to the data sequence immediately preceding them, should multiple data sequences have been processed with multiple start commands.</p>
+
+	    <h3>Reset</h3>
+
+	    <p>Finally, push button BTN1 on the board is to function as a synchronous reset. After the design has been downloaded to the FPGA, the reset button may be pressed to initialise the system. Afterwards, the system should function normally without the need to reset it, for example after every run. At any point if the reset button is pressed, the system should halt any current data processing and settle into the initial state.</p>
+
+	    <h3>Summary</h3>
+
+	    <p>The commands are summarised in Table 2.1.</p>
+
+		<table class="table_class" width="600 px">
+		  <caption>Peak Detector Commands</caption>
+		  <thead>
+		    <tr>
+		      <th>Command</th>
+		      <th>Description</th>
+		    </tr>
+		  </thead>
+		  <tbody>
+		    <tr>
+		      <td>ANNN or aNNN where NNN are 3 decimal digits.</td>
+		      <td>Start command to process NNN bytes of data. Print each byte processed in the terminal window in hexadecimal format, separated by spaces. For example bytes "11111111" and "10101001" in sequence are to be printed as "FF A9".</td>
+		    </tr>
+		    <tr>
+		      <td>L or l</td>
+		      <td>Print the 3 bytes preceding the peak in the order they were received, the peak byte itself and the 3 bytes following the peak in the order received. They should be printed in hexadecimal format and separated by spaces. For example, the output of typing this command after processing a data sequence may be "09 FA A0 FD BC 10 DE".</td>
+		    </tr>
+		    <tr>
+		      <td>P or p</td>
+		      <td>Print the peak byte itself, followed by a space and the peak index in decimal format. For example, the output of typing this command after processing a data sequence may be "FD 197".</td>
+		    </tr>
+		    <tr>
+		      <td>Push button BTN1 (reset)</td>
+		      <td>Initialise the system when pressed at any point, including in the middle of a run. This is a synchronous reset and a reset command should not be required for the system to function normally, except after first loading the design.</td>
+		    </tr>		    
+		  </tbody>
+		</table>
+
+
+	    <h2 id="print_output">Printing Output</h2>
+
+	    <p>Every keystroke typed into the terminal has to be echoed as it is typed.</p> 
+
+	    <p>After a valid command, the output should always start on a new line. In the VT100 terminal, a new line that starts at the first character position on the left hand side is achieved by a sequence of two bytes, a line feed "\n" and a carriage return "\r". The full ASCII code is described in <a href="#">Section 2.4.</a></p>
+
+	    <h2 id="check_understanding">Check Understanding of Specifications</h2>
+
+	    <div class="note">
+	      <ul>
+		<li>At this point, download the source archive for the Peak Detector. In the sub-folder "fullSystem" you will find three folders called "unsigned" and "signed". Open to the folder relevant to your group. and you will find a file named "top.bit", which is a bit file that can be used to configure the FPGA with the specific implementation. Configure the FPGA according to the procedure described below.</li>
+	      </ul>	  
+	    </div>
+	    
+	    <p></p>
+
+	<div class="emphBox">
+	    <ul>
+			<ol>
+	      		<li>Connect the the CMOD A7 board to the PC via the supplied USB cable. Windows should recognise the board and report successful "plug and play" installation with a pop-up message in the control panel at the bottom right to the effect that the device is ready for use.</li>
+	      		<li>Open <a class="emph2">Vivado</a> from the Windows Start menu. You will be presented with a welcome screen that has three panels, <a class="emph2">Quick Start</a>, <a class="emph2">Tasks</a> and <a class="emph2">Learning Center</a>. <a class="emph2">Click Open Hardware Manager</a> under <a class="emph2">Tasks</a>. You will be taken to a different screen.</li>
+	      		<li>Click the link <a style="color:blue">Open target</a> link in the <a style="background-color:#A0FFA0">green bar</a> at the top, and select <a class="emph1">Auto Connect</a>. Vivado should recognise the board and populate the <a class="emph1"> Hardware</a> panel with the detected board./ Right-click on the xc7a35t_0 device and select <a class="emph2">Program Device</a>. Select the "top.bit" file in the signed or unsigned folder depending on which is relevant for you and click <a class="emph2">Program</a>. You can ignore the warnings about a debug core not being detectable.</li>	      
+	      		<li>Open a <a class="unix">PuTTY</a> terminal as specified in <a href="A2_serial.html#uart_PC">Section 3.3</a>.</li>
+	      		<li>Enter the different commands in the <a class="unix">PuTTY</a> terminal and check your understanding of the specifications. Make sure to type in all commands, and to check the operation for different length sequences by specifying various numbers. The data sequence it is processing is defined in the "common_pack.vhd" file available as part of the source file bundle supplied for this assignment.</li>	      
+	    	</ol>
+		</ul>
+	</div>
+
+	    <p></p>
+
+	    <div class="note">
+	      <ul>
+			<li> - You do NOT need to implement the printing of an extra separation line after each command as implemented in the version provided to you. However if you wish, you can implement this formatting to improve the readability of the output.</li>
+			<li> - If you see each typed character twice for the provided implementation, it is due to the terminal settings. Check the terminal settings to make sure that typed characters are not set to be echoed.</li>
+			<li> - See how the implementation handles corner cases. If the peak index is such that there aren't enough bytes to populate 3 bytes either side of the peak, only the bytes corresponding to those valid indices are updated. For example, if the number of bytes requested is upto index 20 (i.e. 21 bytes from 0 to 20), and the peak is at index 18, an "L" command prints all 7 bytes, but only the 6 bytes at indices 15 (byte 0), 16 (byte 1), 17 (byte 3), 18 (byte 4 - the peak), 19 (byte 5) and 20 (byte 6) are valid, and the 7th byte, though printed, is to be disregarded as there isn't an index 21 in the retrieved sequence.</li>
+			<li> - This is simpler than printing variable numbers of bytes, and doesn't give misleading information as the number of valid bytes can be discerned from issuing the peak command. For example, in the above case, "P" would tell you that the peak index is 18, and hence there aren't enough bytes to populate 3 bytes after the peak.</li>
+	      </ul>	  
+	    </div>
+	    
+
+      <table class="arrows">
+	<tr>
+	  <td><a href="A2_index.html"><img src="pics/l_d_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_preamble.html"><img src="pics/l_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_coms.html"><img src="pics/r_arw.png"></a></td>
+	</tr>
+      </table>
+
+
+  </body>
+
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/A2_specs.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:37 GMT -->
+</html>

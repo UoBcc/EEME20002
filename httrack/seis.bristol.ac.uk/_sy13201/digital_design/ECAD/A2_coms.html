@@ -1,0 +1,145 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/A2_coms.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:37 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Communication Protocols</title>
+    <link href="style.css" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="highlight/styles/default.css">
+    <script src="highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+
+  <body style="counter-reset: h1Counter 2 h2Counter h3Counter figCounter taskCounter h1IndexCounter 2 h2IndexCounter taskIndexCounter tableCounter exCounter exIndexCounter;">   
+
+      <table class="arrows">
+	<tr>
+	  <td><a href="A2_index.html"><img src="pics/l_d_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_specs.html"><img src="pics/l_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_design.html"><img src="pics/r_arw.png"></a></td>
+	</tr>
+      </table>
+	  
+
+  <ul class="noIndent">
+    <li class="h1Index"><a href="A2_coms.html">Communication Protocols</a></li>
+    <ul class="noIndent">
+      <li class="h2Index"><a href="A2_coms.html#serial_com">Serial Communication with the Host PC</a></li>
+      <ul class="noIndent">
+	<li class="h3Index"><a href="A2_coms.html#uart_overview">UART and RS-232 Protocol</a></li>
+	<li class="h3Index"><a href="A2_coms.html#uart_PC">UART on the PC</a></li>
+	<li class="h3Index"><a href="A2_coms.html#ASCII">ASCII Printable Characters and Control Sequences for the VT100 Terminal</a></li>
+      </ul>
+      <li class="h2Index"><a href="A2_coms.html#async">Asynchronous Signalling</a></li>
+      <ul class="noIndent">
+	<li class="h3Index"><a href="A2_coms.html#twoPhase">Two-Phase Signalling Protocol to be used in Project</a></li>
+      </ul>
+    </ul>
+  </ul>
+
+	  <h1 id="coms">Communication Protocols</h1>
+
+	  <h2 id="serial_com">Serial Communication with the Host PC</h2>
+
+	    <h3 id="uart_overview">UART and RS-232 Protocol</h3>
+
+	    <p>The RS-232 serial communication protocol is a popular protocol for asynchronous transmission, when two communicating modules do not share the same clock. While it has been superseded for some applications by the USB standard, it is still widely used in others. Figure 3.1 illustrates the components used in the RS-232 serial connection in this assignment.</p>
+	    
+	    <figure class="numFig">
+	      <img src="pics/serial_uart.png" alt="Peak Detector System" style="width:700px;"/>
+	      <figcaption>Peak detector system overview</figcaption>
+	    </figure>
+
+	    <p>There are separate data lines for receiving and transmitting and hence the link is capable of full duplex transmission. While there is only one signal line for data transmission in each direction, the actual protocol includes some other signal lines, such as ground and control signals. These other signal lines do not need to concern us, nor issues related to the physical part of the standard, such as voltage levels, as the interface circuitry takes care of the actual signalling. What is available on the FPGA is access to two pins, one for transmitting and one for receiving. The data on these pins follows the protocol shown in Figure 3.2.</p>
+
+	    <figure class="numFig">
+	      <img src="pics/rs232.png" alt="Peak Detector System" style="width:700px;"/>
+	      <figcaption>Peak detector system overview</figcaption>
+	    </figure>
+
+
+
+	    <p>An RS232 frame consists of at least 10 bits, a start bit, a byte of data, and a stop bit. Additionally the standard also allows for a parity bit for error detection, but we will not use parity. For historical reasons, when the line is idle, the voltage is kept high, at logic '1'. To signify the start of a frame, the line is brought low. Afterwards, the line is driven high or low depending on the value of the bits in the byte. This is followed by a stop bit of logic '1'. The line is operated at a pre-agreed frequency, which is the baud rate of the line. This can be set to many values (for example Windows supports anything from 110 upto 921600), and we will work with a baud rate of 9600 symbols per second. As we are dealing with binary voltages, the baud rate is identical to the bit rate.</p>
+
+	    <p>The actual serial connection between the development board and the PC is a micro USB cable. Wrappers on both sides allow us to simply concentrate on the RS-232 signalling protocol.</p>
+
+	    <h3 id="uart_FPGA">UART for the FPGA</h3>
+
+	    <p>You are provided with VHDL code for <a class="emph3">Rx</a> and <a class="emph3">Tx</a> modules that implement this protocol and are designed to run on a 100 MHz clock, to use on the FPGA side. These modules access two pins which are connected to the transmitting and receiving lines on the serial links. Their usage is demonstrated by a simple design that simply echoes whatever you type in the terminal emulation window. This whole source code bundle is in a zip archive named "uart_rx_tx_stripped.zip". It also includes the pin configuration file and the Xilinx project file. You should be able to start a Vivado project, synthesise, route and map the design and generate a bit file to be downloaded into the FPGA as described in <a href="#">Section 8</a>.</p>
+
+	    <p>While you don't need to understand the implementation details of the <a class="emph3">Tx</a> and <a class="emph3">Rx</a> modules to use them, it is strongly recommended that you study them as examples of good design practice. The <a class="emph3">Tx</a> module code has been <a href="http://www.digilentinc.com/Products/Detail.cfm?NavPath=2,400,897&amp;Prod=NEXYS3&amp;CFID=205834&amp;CFTOKEN=29058160">downloaded</a> from the Digilent (manufacturers of the CMOD A7 board) website. The <a class="emph3">Rx</a> module code was developed especially for this module, and illustrates the preferred way of describing a state machine, with a combinational logic block for determination of next state values, and a sequential state register block that updates its state on every clock cycle. Various other processes control timing and implement local controls, and manage the output signals. It also shows the sort of naming convention you should adopt, the mix of lower-case and upper-case letters for various objects to improve readability even though VHDL is case-insensitive, and the selective use of underscore ("_"). It also demonstrates modularity, with the task of a given process clearly defined. You should also note how each self-contained block of code (for example a process) is relatively short. If you find that you are writing pages upon pages of code in a single body, there may be a better (more efficient, more readable) way to implement your design.</p>
+
+
+	    <h3 id="uart_PC">UART on the PC</h3>
+
+	    <p>On the PC the UART hardware is standard. To open a serial link to the FPGA, you will use a <a href="terms.html#VT100_emulator">terminal emulation</a> utility called <a class="emph2">PuTTY</a>. <a class="emph2">PuTTY</a> is available on the lab PCs but can be downloaded from <a href="http://www.putty.org/">http://www.putty.org/</a> (click on the first link). Once <a class="emph2">PuTTY</a> is open you should see the window of Figure 3.3.</p>
+
+	    <figure class="numFig">
+	      <img src="pics/puttySerial.png" alt="Peak Detector System" style="width:500px;"/>
+	      <figcaption>Configuring PuTTY for serial communication with the FPGA</figcaption>
+	    </figure>
+
+	    <p>Select the "Serial" category as highlighted and set the parameters as shown on the right. Do not click on "Open" yet. 
+
+	      <div class="note">
+		<ul>
+		  <li>A different COM port number may be allocated by your PC depending on what ports are in use when it detects and installs the USB driver for the serial port. When you first plug the board in, Windows will auto detect new hardware and install the necessary drivers, informing you with a message in the notification area of your taskbar, at the bottom right of the screen. Click and expand this, and after installation, a green check mark will appear, telling you which port has been allocated for the device. This port no., however, is different from the COM port you should specify in <a class="emph2">PuTTY</a>. A serial COM port will be only be allocated after you programme the device, and the allocated port will be listed in Device Manager accessible from Windows Control Panel.</li> 
+		</ul>
+	      </div>
+
+	    <p>In order to avoid having to set the parameters each time you open the terminal, you can save these settings. Once you have edited the fields according to Figure 3.3, click on "Session" as shown in Figure 3.4, and give a suitable name (for example "serial_hyp"). Next time you open PuTTY, simply select the saved configuration, click on "Load" and your saved settings will appear. Afterwards click on "Open".</p>
+	    
+	    <figure class="numFig">
+	      <img src="pics/puttySaveConfig.png" alt="Peak Detector System" style="width:500px;"/>
+	      <figcaption>Saving PuTTY settings for future sessions</figcaption>
+	    </figure>
+
+	    <h3 id="ASCII">ASCII Printable Characters and Control Sequences for the VT100 Terminal</h3>
+
+	    <p>The VT100 terminal was a video terminal manufactured in the late 70's and early 80's by DEC that was very popular, and quickly became the de facto standard for terminal behaviour. The term is now commonly used for a terminal that emulates the behaviour of the original terminal. The VT100 terminal uses the 7-bit ASCII code for character representation. Clearly, 7 bits allow 128 characters to be represented. Of these the first 32 (from 0 to 31) are non-printable control codes and are used for various control actions. The remaining 96 (from 32 to 127) are the printable set available on most keyboards. Given in <a href="ASCII.html#printable" target="_blank">Table 3.1</a> are the printable ASCII characters.</p>
+
+	    <p>The control characters are given in <a href="ASCII.html#control" target="_blank">Table 3.2</a>. Specific sequences of these control characters can be used to control display characteristics in the VT100 terminal, such as turn underlining on, change font colour, clear formatting etc.</p>
+
+	      <div class="note">
+		<ul>
+		  <li>Note that the binary format of the ASCII code can often be used to decode the represented characters. For example, the numeric value of the decimal digits 0 through 9 can be extracted simply by taking the binary value of the 4 least significant digits.</li> 
+		</ul>
+	      </div>
+
+	      <h2 id="async">Asynchronous Signalling</h2>
+
+	      <p>Asynchronous communication between two modules is accomplished by what is known as a handshaking protocol, which is a cycle of request and acknowledge between the two modules on dedicated control lines. Both four-phase and two-phase protocols are widely used. Four phase protocols are commonly return-to-zero, i.e. a control line conveys information by being taken high (logic '1'), and then returning to the low value (logic '0'). The receiving module therefore needs to monitor for the logic value on the control line. By contrast, two-phase protocols are non-return-to-zero, i.e. any transition, whether from low to high or high to low, conveys some information.</p>
+	    
+	      <h3 id="twoPhase">Two-Phase Signalling Protocol to be used in Project</h3>
+
+	    <p>We will use a two-phase handshaking protocol for this assignment for communication between the Data Generator and the Data Processor, which is implemented by two control signals <a class="unix">ctrl_1</a> and <a class="unix">ctrl_2</a> as shown in Figure 4.1. Rather than absolute values on the control lines, information is conveyed by transitions. As shown, the data acquisition module makes a request by effecting a transition on its output control line <a class="unix">ctrl_1</a>. The data generation module monitors activity on this line, and fetches a new byte, makes it available on the data lines, and effects a transition on its output control line <a class="unix">ctrl_2</a>. This transition is the signal for the data acquisition module that the data available on the data lines are valid. When it needs a new byte of data, it makes another transition on its output control line, this time from '0' to '1'. When the data generator is ready with the new word, it fetches the new byte. Until a new request is made, the old data has to be maintained on the data lines.</p>
+
+	    <figure class="numFig">
+	      <img src="pics/twoPhase.png" alt="Peak Detector System" style="width:700px;"/>
+	      <figcaption>Peak detector system overview</figcaption>
+	    </figure>
+
+	    <p>The data source supplied to you in the source code bundle for the Assignment will supply bytes without
+limit upon request. After 500 bytes the pattern will repeat.</p>
+
+	    
+      <table class="arrows">
+	<tr>
+	  <td><a href="A2_index.html"><img src="pics/l_d_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_specs.html"><img src="pics/l_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_design.html"><img src="pics/r_arw.png"></a></td>
+	</tr>
+      </table>
+
+
+  </body>
+
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/A2_coms.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:44 GMT -->
+</html>

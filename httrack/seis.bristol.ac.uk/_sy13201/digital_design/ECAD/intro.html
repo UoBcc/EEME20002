@@ -1,0 +1,357 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/intro.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:49 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Introduction to VHDL</title>
+    <link href="style.css" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="highlight/styles/default.css">
+    <script src="highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+
+  <body style="counter-reset: h1Counter 1 h2Counter h3Counter figCounter taskCounter h1IndexCounter 1 h2IndexCounter taskIndexCounter tableCounter exCounter exIndexCounter;">   
+
+      <table class="arrows">
+	<tr>
+	  <td><a href="index.html"><img src="pics/l_d_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="preamble.html"><img src="pics/l_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="timing.html"><img src="pics/r_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_index.html"><img src="pics/r_d_arw.png"></a></td>
+	</tr>
+      </table>
+	  
+
+  <ul class="noIndent">
+    <li class="h1Index"><a href="#intro">Introduction to VHDL</a></li>
+    <ul class="noIndent">
+      <li class="h2Index"><a href="#hw_v_sw">Hardware versus Software Implementations</a></li>
+      <li class="h2Index"><a href="#hw_vhdl">Describing Hardware in VHDL</a></li>
+      <li class="h2Index"><a href="#nand_mod">Implementation of a NAND Gate</a></li>
+      <li class="h2Index"><a href="#nand_sim">Simulating the NAND Gate</a></li>
+      <li class="taskIndex"><a href="#task_NAND_modelsim">Simulation of NAND Gate in Vivado</a></li>
+      <li class="h2Index"><a href="#summary">Summary</a></li>
+    </ul>
+  </ul>
+
+
+	  <h1 id="intro">Introduction to VHDL</h1>
+
+
+	    <p>The learning objectives for this section are:
+	      <ul>
+		<li>To gain insight into prototyping options for embedded systems ranging from a general processor to a DSP to an FPGA to an ASIC;</li>
+		<li>to become familar with the basic structure of a VHDL component comprising separately an interface and an implementation body and associated syntax;</li>
+		<li>to understand how to model simple digital gate functionality using concurrent assignments through a simple example;</li>
+		<li>to understand the concept of a software testbench to test functional digital components through simulation;</li>
+		<li>to become acquainted with the Vivado IDE for FPGA programming by running a first simulation.</li>
+	      </ul>
+	    </p>
+
+	    <h2 id="hw_v_sw">Hardware versus Software Implementations</h2>
+	    <p>Software and hardware implementations refer to solutions for some desired functionality that are either
+	      implemented by programming a processor, such as the one in the computer you are using for this lab, or using custom hardware. This is best understood from a simple example: sorting a sequence of numbers stored as a file on disk. Let's assume that the voltage on an input pin goes high, which is the signal to read data from a block with a specific location on the disk into your system, sort it, and write it back.</p>
+	    <p>If the implementation is software-based, whatever programming language you choose, it will have a routine to read the sequence of numbers from the disk into main memory, a data abstraction that allows you to manipulate the data items and reorder them according to your chosen algorithm, and a routine to write the sorted data back to disk. The important point here is that the processor in your computer executes these steps, which have been translated to the binary instructions it can understand through a process of compilation1 of your plain text programme. The processor is not just capable of running this one programme; it can carry out any function so long as it can be described in a programming language. Precisely because of this versatility, the general purpose processor in a computer is not the most efficient at carrying out any one function or type of function; it sacrifices efficiency for generality.</p>
+	    <p>A hardware solution on the other hand, has custom hardware for a given function. For the above example, custom logic will monitor the input pin voltage, read the data from disk, sort it, and write it back. This logic cannot do anything else, as it is explicitly designed for this one function. Consequently it can be optimised to a level of efficiency that is typically orders of magnitude higher than a general purpose processor. Such an application specific solution results in a chip called an ASIC, which stands for Application Specific Integrated Circuit.</p>
+	    <p>These are the two extremes. There are certain processors, such as digital signal processors (DSP), which are very efficient in performing a certain class of functions, but have a narrower instruction set than a general purpose processor. Their efficiency is higher than a general purpose processor in performing their specialised algorithms, but less so than an ASIC. On the other hand they can perform more functions than an ASIC, but less functions than a general purpose processor.</p>
+	    <p>Field-programmable gate arrays (FPGA) are a fourth class of implementation choice, which sits between DSPs and ASICs in terms of efficiency in implementing a given function. FPGAs are essentially a collection of logic gates and more complex blocks such as memories, adders and multipliers that are not configured. They can be configured to implement a given function by a programmable interconnect fabric. Boolean logic functions are implemented by look-up tables that can be programmed with the truth table of the given function. FPGAs generally provide very efficient solutions, though less so than an ASIC. On the other hand, they can be configured to implement multiple functions unlike an ASIC. Modern FPGA platforms have large amounts of predesigned blocks that can be resued, called IP (for intellectual property) blocks. These range from commonly used arithmetic blocks such as adders and multipliers to communication blocks such as universal asynchronous receiver transmitter (UART) modules to digital signal processing units to full processors that can be synthesised onto the FPGA fabric, and on-chip buses with bus masters and arbiters.</p>
+	    <p>Two very important non-technical issues related to implementation choice for a given application are development time and cost. A routine in a high-level programming language is the most time-efficient and economical way of implementing something. Designing an ASIC is very expensive in terms of both development time and cost, as a custom chip has to be designed and fabricated. FPGAs are a good compromise, as they can be bought off the shelf, and programmed to implement a given function, and are being used in increasing numbers of applications. However it is important to note the following:</p>
+
+	    <div class="note">
+	      <ul>
+		<li>An FPGA solution requires the design of hardware; essentially, you have to design the circuit that will carry out your function. The circuit is described in a Hardware Description Language (HDL), which can be either VHDL (used a lot in Europe) or Verilog (used in North America).</li>
+	      </ul>	  
+	    </div>
+	    
+	    <p>The first point to understand about VHDL therefore is that it is NOT a software programming language. What you do in VHDL “programming” is to describe the hardware that implements a given function. This description can be done in different ways as described below. Whatever your type of description, the equivalent to the compiler in a software environment takes your description and transforms it into a netlist that is used to configure the resources in the FPGA. Most of these details of how the circuit is configured are unimportant at this stage, and the important points will be discussed later, but the central message is:</p>
+
+	    <div class="note">
+	      <ul>
+		<li>VHDL is not a software programming language, rather it describes hardware.</li>
+		<li>Hardware fundamentally works in parallel (for example, two gates will perform their function on their inputs simultaneously), and hence concurrency is built into VHDL. How this works is one of the first things to understand, and relates to the timing model in VHDL. We will look at this closely in the upcoming exercises.</li>
+	      </ul>
+	    </div>
+
+	    
+	    <h2 id="hw_vhdl">Describing Hardware in VHDL</h2>
+
+	    <p>A working hardware model in VHDL comprises at least two parts, an <a class="unix">entity</a> description describing the interface that the hardware component presents to the rest of the world, and an <a class="unix">architecture</a> body that describes the functionality of the component. To use a software analogy, this is similar to declaring a function prototype and the function body. The architecture body can be bound to the entity description at the time of instantiating the component, i.e., using a working model of the component, for example in a simulation.
+	      A single entity can have many architecture bodies, each representing a different implementation. These are generally functionally equivalent, but can be implemented in different styles for example, or using different components. Having multiple implementations that can be bound to the same interface can be quite useful in different scenarios such as debugging different versions, using different library components, or targeting different performance and/or cost specifications and so on.</p>
+	    <p>In modelling hardware, VHDL supports the general "divide and conquer" approach used in Engineering to tackle complex tasks. This essentially means a complex task is divided into several smaller tasks that are each easier to solve, and combining the solutions to each of these subtasks results in the solution to the overall problem. In the field of Microelectronics we use two terms called partitioning and hierarchy to refer to a subdivision that is essentially flat (i.e., components working in parallel), or hierarchical, (i.e., components being composed of subcomponents which in turn are composed of their own subcomponents, until the basic building blocks of the technology are reached). In practice a real design has both partitioning as well as hierarchical subdivision. </p>
+
+	    <div class="note">
+	      <ul>
+		<li>Partitioning and hierarchy are supported in VHDL by the <a class="emph1">abstraction</a> of being able to separate the interface of hardware from its inner workings <sup><a href="refs.html#perry">[1]</a></sup>. The interface is specified by the <a class="unix">entity</a>, and the implementation by the <a class="unix">architecture</a>.</li>
+	      </ul>
+	    </div>
+
+	    <p>There are several different coding styles in VHDL that support modular design. We will defer a more complete discussion of modularity until later, as we don’t want to get sidetracked at this stage, but think of it for now as having one component implementing some limited functionality only, but doing it well. The complete design consists of many such modules. To again use the software analogy, modularity is a key technique in writing readable and reusable programmes.</p>
+
+	    <p>These coding styles can be broadly described as:</p>
+	    <ol>
+	      <li>Structural - describes the structure of the design in terms of its sub-components and their interconnections;</li>
+	      <li>Data-flow or register-transfer level (RTL) - describes functionality in terms of concurrent statements;</li>
+	      <li>Behavioural - describes functionality in terms of high-level behavioural constructs (such as if-then- else clauses) as well as concurrent statements.</li>  
+	    </ol>
+
+	    <p>In general, VHDL code that is meant to be synthesised (translated to hardware using an automated process) is usually termed RTL in the vernacular of the digital design community, even though in practice it is a mix of all three styles.</p>
+
+	    <div class="note">
+	      <ul>
+		<li>VHDL (or Verilog) code <sup><a href="refs.html">[2-4]</a></sup> describing hardware is usually called <a class="emph1">RTL</a>.</li>
+	      </ul>
+	    </div>
+
+	    <p>We will look at several examples illustrating these styles in the following sections that demonstrate good practice.</p>
+
+	    <h2 id="nand_mod">Implementation of a NAND Gate</h2>
+	    
+	    <p>In these assignments you will use the Vivado software suite, This first example comprises a NAND gate built from cascading an AND gate with an inverter, as shown in Fig. 1. </p>
+
+	    <figure class="numFig">
+	      <img src="pics/nand_struct.png" alt="NAND gate built from a NAND gate and inverter" style="width:600px;height:190px;"/>
+	      <figcaption>NAND function using an AND gate and an inverter (i.e., a NOT-AND combination)</figcaption>
+	    </figure>
+
+	    <p>The interface to the outside world is defined by two input pins a and b, and one output pin q. The q_prim signal is essentially an internal wire connecting the output of the AND gate to the input of the inverter. There are many possible ways of implementing this functionality, and one possible VHDL model of this circuit is given below. </p>
+	    <pre>
+	      <code class="vhdl">
+		ENTITY gate IS 
+		  PORT ( 
+		    a:IN BIT; -- input
+ 		    b:IN BIT;
+		    q:OUT BIT
+		  );
+		END gate;
+
+		ARCHITECTURE dataflow OF gate IS
+		  SIGNAL q_prim : BIT;
+		BEGIN
+		  q_prim <= a AND b AFTER 5 ns;
+		  q <= NOT q_prim AFTER 3 ns;
+		END dataflow;
+	       </code>
+	    </pre>
+
+	    
+	    <figure class="numFig">
+	      <img src="pics/entity_nand.png" alt="NAND gate built from a NAND gate and inverter" style="width:600px;height:368.7px;"/>
+	      <figcaption>A summary of entity and architecture definitions.</figcaption>
+	    </figure>
+
+	    <p>The description starts with the reserved word <a class="unix">entity</a>, and the first thing to note is that VHDL is NOT case sensitive; i.e., <a class="unix">entity</a>, <a class="unix">ENTITY</a> and <a class="unix">EntiTy</a> as well as any other combination of upper- and lower-case combinations are all acceptable and will not generate a syntax error. However, you should adopt some sensible convention that aids readability, such as always using upper-case letters for reserved words. In this example, all reserved words are shown in upper-case.</p>
+
+	    <div class="note">
+	      <ul>
+		<li>VHDL is <a class="emph1">not </a> case sensitive.</li>
+	      </ul>
+	    </div>
+
+	    <p>The interface specifies two inputs of type <a class="unix">in</a> and one of type <a class="unix">out</a>, which restricts the direction of signal flow. A type <a class="unix">inout</a> is also possible that allows bidirectional signal flow, but is not recommended at this point as it has implications in hardware.</p>
+
+	    <div class="note">
+	      <ul>
+		<li>Observe the correspondence between the inputs and outputs of the schematic and the PORT declaration in the VHDL model.</li>
+	      </ul>
+	    </div>
+
+	    <p>The key word <a class="unix">architecture</a> begins the architecture body, and is always followed by an entity reference, in this case <a class="emph1">gate</a>. What this means is that the inputs and outputs defined in the entity description can be read and written to within the architecture body.</p>
+	    <p>This is followed by a declaration space, where a signal called <a class="unix">q_prim</a> is declared. A <a class="unix">SIGNAL</a> is a value holder in VHDL, and in this example can be thought of as representing a wire in hardware.</p>
+
+	    <div class="note">
+	      <ul>
+		<li>Note the correspondence between the internal wire and the <a class="unix">SIGNAL</a> declaration.</li>
+	      </ul>
+	    </div>
+
+	    <p>The type bit is a predefined (native) type in VHDL that can take the value of '0' or '1'. We will actually not use this type when designing logic, as in reality, wires can have values other than '0' or '1', even if they are exclusively digitally driven, such as high impedance 'Z', unknown 'X', weak / forcing high etc when a wire is driven by multiple drivers. The type we will use is called <a class="unix">std_logic</a>, which is defined in a library implemented to an IEEE standard called <a class="unix">IEEE.STD_LOGIC.1164</a>. However we use it now for illustration as it is the simplest type and is perfectly adequate for this example.
+
+	      <div class="note">
+		<ul>
+		  <li>The type <a class="unix">bit</a> is a native type declared in VHDL, and can take the value '0' or '1'. We will actually not use this type when designing logic to be synthesised, as in reality, wires can have values other than '0' or '1'. The type we will use is called <a class="unix">std_logic</a>, which is defined in a library called <a class="unix">IEEE.STD_LOGIC.1164</a>.</li>
+		</ul>
+	      </div>
+
+	    <p>After the keyword begin, the functional description is contained in two concurrent signal assignment statements. This is starkly different from standard "programming"; the statements do not execute in sequence as one would expect in a typical programming language. Instead they execute simultaneously, as that is exactly how events would unfold in hardware.</p>
+
+	    <p>How does this work?</p> 
+
+	    <p>To begin with, let’s ignore the <a class="unix">AFTER</a> clause, and assume that the two concurrent statements in the example are:</p>
+	    <pre>
+	      <code class="vhdl">
+		q_prim <= a AND b;
+		q <= NOT q_prim;	    	      
+	       </code>
+	    </pre>
+
+	    <p>Any change in input signals to any of the individual concurrent statements trigger an evaluation in that statement. Changes in <a class="unix">a</a> and / or  <a class="unix">b</a> will cause the first statement to be evaluated. If that results in a change in the value of <a class="unix">q_prim</a>, that acts as an evaluation trigger for the second statement as <a class="unix">q_prim</a> is an input to the second statement.</p>
+
+	    <div class="note">
+	      <ul>
+		<li>Signal assignment statements in the architecture body are concurrent.</li>
+		<li>Thus, the order of statements does not matter.</li>
+	      </ul>
+	    </div>
+	    
+	    <p>A critical thing to appreciate is that all signal assignments incur some delay; all hardware components  take some non-zero time to update. Even when there is no explicit delay associated with the assignment as above (we have removed the <a class="unix">AFTER</a> clause) the signals have an intrinsic delay that is infinitessimally small, but quantised, called the delta delay. This can cause some confusion when running a simulation and stepping through the code. This topic is covered in <a href="timing.html">Section 3.1.2 </a> later. </p> For now, we need to remember that all signal asignments have an associated delay.</p>
+	    
+	    <div class="note">
+	      <ul>
+		<li>Signal assignments always have an associated delay.</li>
+	      </ul>
+	    </div>
+	    
+	    <p>Now, let’s take a look at how the functionality is implemented. The NAND functionality is accomplished with the help of an internal signal called <a class="unix">q_prim</a>, in two lines; each line is a signal assignment. The first line specifies that the signal <a class="unix">q_prim</a> should be updated with the value of <a class="unix">(a AND b)</a> after a delay of 5 ns. This signal delay is intended to model the propagation delay of a real logic gate; no physical gate can operate with zero delay. It is very important to understand that this delay of 5 ns is for the purpose of simulating the gate with a realistic delay, which will help in tracing hazards. It cannot be synthesised; i.e., from this description an AND gate with a physical delay of 5 ns cannot be realised. However we can model an AND gate with a physical delay of 5 ns for simulation purposes.</p>
+
+	    <p>The second line assigns the inverted value of <a class="unix">q_prim</a> to <a class="unix">q</a>, which is an external pin, after a delay of 3 ns. When describing functionality in VHDL, it is important to think in terms of how this functionality will be implemented in hardware. In this example, the hardware implication is very clear: the first signal assignment models an AND gate with a physical delay of 5 ns. The second assignment models an inverter with a delay of 3 ns.</p>
+
+	    <p>Finally, would you say this was a structural, data-flow or behavioural style description? Well, it’s
+	      clearly not a structural description, as it does not make any use of subcomponents. Inside the architecture body, there are simply two concurrent assignment statements, and hence this can be thought of as a data-flow style description, as the name of the architecture body implies. You can also think of it as a gate-level description, as each signal assignment clearly corresponds to a gate.</p>
+	    
+	    <div class="note">
+	      <ul>
+		<li>Clear and intuitive names for entities, ports, signals, architecture bodies and other objects or constructs that you may use (such as processes, variables and constants) are an important part of producing readable and reusable code.</li>
+	      </ul>
+	    </div>
+
+	    <h2 id="nand_sim">Simulating the NAND Gate</h2>
+
+	    <p>In order to simulate this model of a NAND gate, we use a <a class="emph1">testbench</a>, to instantiate this component and provide stimuli to its inputs and connects a signal to its output, so that its transient behaviour can be observed. The testbench we will use to test this model is given below.</p>
+
+	    <pre>
+	      <code class="vhdl">
+		ENTITY test IS END test;
+		
+		ARCHITECTURE testNand OF test IS
+
+		  COMPONENT gate
+	            PORT (
+ 	              a:IN BIT;
+                      b:IN BIT;
+	              q:OUT BIT
+	            );
+		  END COMPONENT;
+
+		  SIGNAL a_sig, b_sig, q_sig:BIT;
+		  SIGNAL c_sig:BIT_VECTOR(1 downto 0);
+
+		BEGIN
+		  C1:gate PORT MAP(a_sig, b_sig, q_sig);
+		
+		  a_sig <= c_sig(1);
+		  b_sig <= c_sig(0);
+		  c_sig <="00",
+			  "01" AFTER 10 ns,
+			  "11" AFTER 20 ns,
+			  "10" AFTER 30 ns,
+			  "00" AFTER 40 ns;
+		END testNand;	
+	      </code>
+	    </pre> 
+	    
+	    <p>Note the following regarding this software testbench:</p>
+	    <ul>
+	      <li>The Entity has no port declaration. This is because the testbench is self-contained.</li>
+	      <li>The signals a_sig, b_sig and q_sig in the testbench correspond to wires which connect to
+		the input and output nodes of the circuit schematic of Fig. 1.</li>
+	      <li>The testbench uses the NAND gate we defined previously by first declaring it as a component and then instantiating it and mapping the port signals in one line: <a class="unix">C1:gate PORT MAP(a_sig,b_sig,q_sig);</a></li>
+	      <li>The component name and the port name, direction and data type in the component declaration are consistent with those in the NAND gate's entity declaration. The order of signals within parenthesis matches the order of ports in the entity declaration for the component.</li>
+	      <li>The default mapping of a component is to bind it to the entity with an identical name. By giving
+		the component a name <a class="emph1">identical</a> to that of an existing entity, the default mapping is used, and we don't need to specify a binding or configuration explicitly. As we will see later, it is not necessary
+		to do this, as having the same name for the entity/component as well as pins is quite restrictive. If
+		we give different names, we simply need to map a component to an existing entity explicitly.</li>
+	      <li>The <a class="unix">c_sig</a> signal is declared as a vector, whereas all the other signals are scalars. It is assigned the bit patterns that are subsequently assigned to the <a class="unix">a</a> and <a class="unix">b</a> inputs of the gate component via <a class="unix">a_sig</a>, and <a class="unix">b_sig</a>.</li>
+	      <li>Note how the order of signal assignments do not matter as they are concurrent. Therefore, it is not
+		necessary to assign the stimulus patterns to <a class="unix">c_sig</a> before assigning <a class="unix">c_sig</a> to <a class="unix">a_sig</a> and <a class="unix">b_sig</a>. This assignment order would not make sense in a sequential programming language, but it makes perfect sense in a hardware modelling language such as VHDL.</li>
+	    </ul>
+
+	    
+	    <h2 id="Vivado IDE introductiion">Simulation of NAND gate in Vivado</h2>
+
+	    <ul> 
+		<ol class="taskItem">
+	      <li>Download the source file bundle for Pre-Assignment from Blackboard, save it on a local folder and unzip the archive.</li>
+	      <li>Start Vivado by clicking on Start -> All Programs -> Xilinx Design Tools -> Vivado 2022.2.</li>
+		  <li>Click on Create Project under Quick Start and a new dialogue will open. In appropriate fields:
+		  <li>Specify a folder (in your O: drive, so that you can work on any machine) where you will store the source and other files generated by the program and a project name. To avoid confusion later on, it is recommended that you create a folder called “Pre-Assignment” and sub-folders bearing the task name for each individual task. If you follow this convention, for this example, the project name folder will be “Pre-Assignment/task2.4”) and the project name will be task2.4.</li>
+    	   <li>Create an RTL type project.</li>
+	       <li>Add the two source files.</li>
+		    <li>Do not add any costraints.</li>
+		     <li>Choose the component XC7A35TCPG236-1 by filtering for family Artix-7, package cpg236 and speed grade -1. (This is not necessary for this example as you will not synthesise anything, but this is the board you will use throughout the course.)</li>
+		<li>Once you have created the project, you should see a picture similar to Fig. 2.3.</li>
+		  
+		  <figure class="numFig">
+		    <img src="pics/vivado_IDE.png" alt="Vivado IDE" style="width:600px;height:546.5px;"/>
+		    <figcaption>Vivado IDE.</figcaption>
+		  </figure>
+		  
+		  <p>On the left-hand side is the Flow Navigator with a series of tasks that provide control over the design and implementation process. These are Project Configuration, IP Integration, Simulation, RTL Analysis, Synthesis, Implementation, and Bitstream Generation. The commands and options available in the Flow Navigator depend on the status of the design. Unavailable steps are grayed out until required design tasks are completed. In Assignement 1, you will only need to explore the Project Manager and Simulation. For more details on the Vivado integrated design environment (IDE) and Vivado simulator refer to references <sup><a href="refs.html">[5-6]</a></sup>.</p>
+
+		  <p>Briefly, synthesis is the process of mapping the hardware described in the RTL to logic. After synthesis, RTL analysis can be used to <a class="emph1">elaborate</a> the design. Implementation is the process of place and route; the synthesised netlist is mapped to the available resources on the targeted FPGA platform. Bitstream generation produces a bitstream that can be used to programme the FPGA. </p>
+
+		  <p>In the sources window to the right of the flow navigator, choose the hierarchy tab as shown. Both of the source files you added should show up under the sim folder, as well as under design sources. Double-click on the sources and have a look at the code. Make sure they are identical to the sources of the "nand" and "tb_nand" modules listed above. </p>
+		
+		<li>Under simulation in the Flow Navigator, choose Run simulation -> Run Behavioral Simulation. The sources will be compiled and a simulation will be run for 50 ns by default. The menu will change according to the context, and you will see a view similar to Fig. 2.4.</li> 
+		  
+		  <figure class="numFig">
+		    <img src="pics/vivado_IDE_SIM_annotated.png" alt="Vivado IDE SIM" style="width:1000px;height:584px;"/>
+		    <figcaption>Vivado IDE in simulation context.</figcaption>
+		  </figure>
+
+		  <p>You may need to zoom in on the simulation window to see the waveform details: right-click anywhere in the window and select Full View. If <a class="unix">q_prim</a> is not visible, In the Objects window, right-click on <a class="unix">q_prim</a>  signal and select Add to Wave Window. There will be no waveform associated with this signal as it was added after the simulation ran. In the simuation menu click on Restart, which is a blue icon that looks similar to a rewind button. Afterwards rerun the simulation and the waveform for <a class="unix">q_prim</a> will be generated.
+		    
+		    <div class="note">
+		      <ul>
+			<li>Pointing the cursor to any menu button causes an explanatory note to pop up. </li>
+			<li>The waveform window has several useful utilities that allow the cursor to move to transistions and specfic time points, and placement of markers.</li>
+		      </ul>
+		    </div>
+		  </p>
+
+		</li>
+
+		<li>Spend some time understanding how the waveforms correlate to the descriptions in the code. Note in particular:</li>
+		  <ul>
+		    <li>the correctness of the boolean functions specified for <a class="unix">q_prim</a> and <a class="unix">q</a>, and </li>
+		    <li>the delays associated with their upates. </li>
+		  </ul>
+
+		  <p>For example. <a class="unix">b_sig</a> changes at 10 ns, but the output <a class="unix">q_prim</a> does not need to change, as the boolean function <a class="unix">(a_sig AND_b_sig)</a> is still <a class="unix">'0'</a>. After <a class="unix">a_sig</a> changes at 20 ns, <a class="unix">q_prim</a> should go to <a class="unix">'1'</a>, but only after a delay of 5 ns, when it duly changes to <a class="unix">'1'</a>. This event on <a class="unix">q_prim</a> results in a change in <a class="unix">q</a>, 3 ns later. </p>
+		</li>
+	      </ol>
+		</ul>
+		
+	      <h2 id="summary">Summary</h2>
+
+	      <p>The following points were covered in this section. 
+		<ul>
+		  <li>There is an order of magnitude difference, approximately, between the energy efficiency of a functional solution for a custom application based on a general instruction set processor, a domain-specific processor, an FPGA and an application-specific integrated circuit (ASIC).</li>
+		  <li>An FPGA has a programmable fabric omprising an array of unconfigured logic gates and a programmable interconnect network. Modern FPGAs have an extensive collection of predesigned IP blocks that can be reused, including processor cores, arithmetic, communication and DSP blocks, and on-chip buses.</li>
+		  <li>VHDL is a hardare description language that is used to model hardware for simulation as well as synthesis. VHDL is able to model the concurrency inherent in hardware. The basic structure of a VHDL description is an <a class="unix">entity</a> that defines the interface and an <a class="unix">architecture</a> body that defines the implementation.</li>
+		  <li>Digital logic functionality can be described by concurrent statements that comprise signal assignments. A signal assignment always has an associated delay, whether specificied explicitly or not.</li> 
+		  <li>Xilinx Vivado is used to simulate and programme Xilinx FPGA devices.</li>
+		</ul>
+	      </p>
+
+		  <table class="arrows">
+			<tr>
+			  <td><a href="index.html"><img src="pics/l_d_arw.png"></a></td>
+			  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+			  <td><a href="preamble.html"><img src="pics/l_arw.png"></a></td>
+			  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+			  <td><a href="timing.html"><img src="pics/r_arw.png"></a></td>
+			  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+			  <td><a href="A2_index.html"><img src="pics/r_d_arw.png"></a></td>
+			</tr>
+			  </table>
+
+  </body>
+
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/intro.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:53 GMT -->
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/A2_design_approach.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:49 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Methodology</title>
+    <link href="style.css" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="highlight/styles/default.css">
+    <script src="highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+
+  <body style="counter-reset: h1Counter 7 h2Counter h3Counter figCounter taskCounter h1IndexCounter 7 h2IndexCounter h3IndexCounter h4IndexCounter taskIndexCounter tableCounter exCounter exIndexCounter;">   
+
+      <table class="arrows">
+	<tr>
+	  <td><a href="A2_index.html"><img src="pics/l_d_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_deliverables.html"><img src="pics/l_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_refs.html"><img src="pics/r_arw.png"></a></td>
+	</tr>
+      </table>
+	  
+
+  <ul class="noIndent">
+    <li class="h1Index"><a href="#design_approach">Design Approach</a></li>
+      <ul class="noIndent">
+	<li class="h2Index"><a href="#modularity">Modularity</a></li>
+	<li class="h2Index"><a href="#start">Starting</a></li>
+	<li class="h2Index"><a href="#cmdProc">Developing the Command Processor</a></li>
+	<li class="h2Index"><a href="#dataProc">Developing the Data Processor</a></li>
+	<li class="h2Index"><a href="#peakDetector">Developing the Fully-Integrated Peak Detector</a></li>
+	<li class="h2Index"><a href="#codeStyle">Coding Style for Designing Hardware</a></li>
+	<li class="h2Index"><a href="#commonMistakes">Common Mistakes</a></li>
+	<li class="h2Index"><a href="#vc">Version Control</a></li>
+      </ul>
+    </ul>
+  </ul>
+
+
+	<h1 id="design_approach">Design Approach</h1>
+	    
+
+	<h2 id="modularity">Modularity</h2>
+
+	<p>The way to proceed with your design is to pay strict attention to the principle of modularity. Essentially, when designing a component, ensure that it does one thing, and one thing only, and does it well. The notion of a component can be applied to any individual block of code. For example, assume you need a decoder block; this can be implemented in a single process body. This decoder block may reside in a file with other such components, but the functionality of the decoder block itself is precisely defined, and it is always a good idea to write a small test bench that tests the functionality of the decoder block separately. Debugging a large design is much easier if you have constituent components with clearly defined functionalities, that have been separately verified. If you have a large monolithic block of code with no clear structural lines, debugging it can be a very difficult task.</p>
+	    
+	<h2 id="start">Starting</h2>
+	    
+	<p>All groups should start by implementing the stripped down version of the Rx and Tx and try to understand how it works. Scrutinise the code for the Rx, Tx and the Controller to look at examples of good design practice. The coding techniques adopted here include macro techniques such as modularity, division along clear structural lines and good naming conventions. They also demonstrate good coding techniques for describing the overall design as a data path and a controller (defined as a finite-state machine), as well as templates for describing the combinational and sequential elements in the data path and finite-state machine. Sometimes it makes sense to have separate controllers for separate tasks.</p>
+
+	<h2 id="cmdProc">Developing the Command Processor</h2>
+	
+	<p>The teams working on the Command Processor can start adding functionality to the controller in the stripped down version of the UART to recognise the requisite commands. You should divide the Command Processor into multiple separate submodules so that each student can work on their own section of the functionality. For example, the Command Processor can be split into the Rx pattern recogniser, the data echoing, the L printing, and the P printing. You can use seperate files for each such submodule with one person having responsibility for each. You should develop simple testbenches of your own to check for correct functionality of your own submodule before integration with the rest of the components. Please note that these submodules need not necessarily be stand-alone entities in the final integation, or in separate files; they can be implemented in separate processes in the final implementation. Of course if it makes sense to have a separate entity for a sub module if the functionality warrants it, such as a comparator, decoder or some other block with a clearly defined logical function, you should feel free to implement it as a separate entity and architecture.</p> 
+
+	<p>To test against the requirements for the interim submission, you can use the testbench named "tb_CmdProcessor_Interim.vhd" in the code archive.</p>
+
+	<h2 id="dataProc">Developing the Data Processor</h2>
+
+	    <p>The teams working on the Data Processor should scrutinise the Data Generator source to understand how the single-phase protocol works to start developing the Data Processor. You should divide the Data Processor into multiple separate submodules so that each student can work on their own section of the functionality. For example, the Command Processor can be split into the data retrieval component that fetches bytes based on the two-phase protocol, and the peak detection component. With such a division, each component may require other logical components such as comparators and shifters. You can use seperate files for each such submodule with one person having responsibility for each. You should develop simple testbenches of your own to check for correct functionality of your own submodule before integration with the rest of the components. Please note that these submodules need not necesssarily be stand-alone entities in the final integation, or in separate files; they can be implemented in separate processes in the final implementation. Of course if it makes sense to have a separate entity for a sub module if the functionality warrants it, such as a comparator, shifter or some other block with a clearly defined logical function, you should feel free to implement it as a separate entity and architecture.</p>
+
+	<p>To test against the requirements for the interim submission, use the supplied testbench "tb_dataConsume_signed.vhd" or "tb_dataConsume_unsigned.vhd" based on whether you are implementing a signed or unsigned version, to test for the functionality required for the interim submission.</p> 
+	    
+	<h2 id="peakDetector">Developing the Fully-Integrated Peak Detector</h2>	    
+
+	<p>Once the interim submission is complete, you should take stock of the remaining tasks and distribute tasks equitably. It may make sense for the Data Processor team to take on some of the remaining tasks in the Command Processor. The integration of all components should be straightforward if you have followed the component interface definitions and protocols faithfully.</p>
+
+
+	<h2 id="codeStyle">Coding Style for Designing Hardware</h2>
+	    
+	<p>For every design deliverable it is very important that you follow the design and coding guidelines described in Assignment 1. In particular, you have to:</p>
+
+	<div class="emphBox"><a class="emph2">Points to remember:</a>
+	  <ol style="margin-left:8px;">
+	    <li style="line-height:1.4;">Separate combinational and sequential elements1 clearly, and follow prescribed templates for both;
+	      <ul>
+		<li>For combinational elements this means adding every signal that you read in a process to the sensitivity list, and assigning values in every single conditional branch of <a class="unix">if-then else</a> and <a class="unix">case</a> structures. One way to accomplish the latter is to assign a default value at the beginning of a conditional branch structure and overwrite it only where necessary.</li>
+		<li>For sequential elements this means using the provided template to infer a flip-flop, based on signal assignment under the control of a rising or falling clock edge. You should only use one type of flip-flop, either rising or falling and not both, throughout the design.</li>
+		<li>For example, say you need an up-down counter with reset, enable and counting direction inputs. Clearly, this is a sequential block, as the count value needs to be saved. Define a process in the same architecture body, or a separate entity with its own architecture. An entity makes sense if you want to reuse it as a component across multiple designs. If you only want to use it once, a process makes sense and makes for less clutter. Whether or not you use a separate entity and architecture body, give the process a clear descriptive label, and make it synchronous, i.e. only clock need be in the sensitivity list. On every clock edge, either reset the count to zero, or if counting is enabled, increment or decrement count based on the counting direction. Do not be tempted to do anything other than implement the counter in this process.</li>
+		<li>As another example, say you need a 3-way multiplexer. Again implement this as a process or in a separate architecture with its own entity depending on how you plan to reuse it. This is clearly a combinational element, and all data and select inputs need to be in the sensitivity list. If you have a behavioural if-then-else structure or a case statement, make sure to assign the output in every single conditional branch. Again, do NOT be tempted to do anything other than multiplex in this block.</li>
+	      </ul>
+	      
+	    <li>Use the standard architecture comprising a data path or data paths and a controller or controllers as adopted in Section 6.4 of Assignment 1. The controller should be described as a finite-state machine and follow the supplied template exactly.</li>
+	    <li>Avoid latches at all costs. Latches are inferred by assigning a value in a single conditional branch under the control of a level-sensitive condition. They can be unintentionally inferred by forgetting to assign values in all branches of a combinational process.</li>
+	    
+	    <li>Avoid software-oriented styles of coding predicated on a single sequential thread. Remember that hardware is inherently concurrent.</li>
+
+	    <li>Avoid long monolithic blocks of code that run into pages and pages. Organise your code into modular (self-contained) blocks, either as processes inside the same architecture, or separate entities and architecture bodies, where each block accomplishes one clearly defined task. Each modular block should be quite short, with a length on the order of what you can read on a single screen. If you need much longer code than can be read on a single screen, you should consider splitting the functionality into two or more blocks.</li>
+
+	      <li>Synthesise your code often in Xilinx and pay heed to <a class="emph3">errors</a> that make your code unsynthesisable and <a class="emph3">warnings</a> related to latches and missing signals in sensitivity lists.</li>
+
+	      <li>If you need to use arithmetic operators, use the <a class="unix">IEEE numeric_std package</a> and not the <a class="unix">std_logic_arith</a> package as described in <a href="behavioural.html#dataTypes">Assignment 1, Data Types</a>.</li>
+
+	    <li>Try not to use any of the constructs not introduced in Assignment 1. In particular, be careful about using the <a class="unix">for &lt;parameter&gt; in &lt;range&gt; loop</a> construct. This is synthesisable for a static range, and if the loop contains no wait statements. However unless you understand what you are doing and know how it will be synthesised, please avoid. There is no penalty if you do use it properly.</li>
+
+	    </ol>
+	  </div>
+
+	  <p>Also look at the section <a href="synchronous.html#tips">General Tips and Techniques</a> from Assignment 1.</p>
+
+	  <div class="note">
+	    <ul>
+	      <li>The example in Section 6.4 of Assignment 1 best describes how hardware should be implemented. This is the style you should follow closely. Also carefully read the supplied code for the UART receiver (Rx), which illustrates all the design principles and guidelines described here.</li>
+	      <li>Avoid at all costs artificial timing based on omitting signals from the sensitivity list. While this may work in a simulation, it will never work in actual hardware. Any synthesis tool will automatically add all signals that are on the right-hand side of a signal assignment or are read in <a class="unix">if-then-else</a> or <a class="unix">case</a> structures to the sensitivity list.</li>
+	    </ul>
+	  </div>
+	  
+	  <h2 id="commonMistakes">Common Mistakes</h2>
+
+	  <p>Implementing memory without following a flip-flop template. The most frequent causes of latches in submitted designs are when a latch is inferred by assigning to some signal in certain branches only, inside a state machine. In some cases this may be unintentional, and can easily be fixed by assigning in every conditional branch. These are cases where memory is not required to implement the functionality.</p>
+	  
+	  <p>However in certain other cases, memory may need to be inferred for the given functionality. For example,
+	    consider the following code fragment:</p>
+
+
+	  <pre>
+	    <code class="vhdl">
+	      ...........
+	      CASE curentState IS
+	      ...........
+	      WHEN updateState =>
+	      tx_reg <= rx;
+			WHEN inputReady =>
+		-- tx_reg is not assigned in any other branch
+		-- instead, its read here
+		if (tx_reg = "11111111")
+		-- do something
+		.............
+	      </code>
+	    </pre>
+	    
+	    <p>Let's assume that for this design to work, the value of <a class="unix">tx_reg</a> should only be updated in state <a class="unix">updateState</a>, and the value needs to be read in other states, i.e. memory is needed. Written in this form, a latch is implied, as the assignment is under the control of a level-sensitive condition, and it is not assigned in every branch. A latch being implied is bad enough, but this is implication by stealth, it does not follow a latch template. This code is unlikely to work even in simulation. It is guaranteed not to work when synthesised.	  
+	
+
+	    <div class="note">
+	      <ul>
+		<li>The above is a perfect example of how <a class="emph2">NOT</a> to write VHDL code to be synthesised, and is typically
+the result of applying a software programming style and logic to hardware.</li>
+	      </ul>
+	    </div>
+
+	<p>So how should you implement this instead? You should have a separate clocked process that assigns to <a class="unix">tx_reg</a> by reading the value of <a class="unix">currentState</a>. This is accomplished by the following code: 
+
+      <pre>
+	<code class="vhdl">
+	  regSync : PROCESS (clk)
+	  BEGIN
+	    IF clk'EVENT AND clk='1' THEN
+	      IF reset='1' THEN
+	        tx_reg <= X"FF"; -- assign a HEX value to std_logic_vector
+              ELSIF currentState = updateState THEN
+                tx_reg <= rx;
+              END IF;
+           END IF;
+          END PROCESS; -- regSync
+	</code>
+      </pre>
+  	  
+	<p>Note how this has a synchronous reset, and everything that happens inside the process body is predicated upon a clock edge. Therefore, the process only needs to be triggered on a clock event, and does not need anything other than the clock to be in the sensitivity list.</p>
+
+	<p>Once you have implemented this register, you can read its value from inside your combinational process.</p>
+
+	
+	<h2 id="vc">Version Control</h2>
+
+	<p>It is important to back up your work often, and making sure you can revert to an earlier version if something breaks. You can do this manually, or use a proper version control tool. There are many online resources available, including GitHub, Bitbucket and Sourceforge. There are many tutorials available for each such tool.</p>
+
+
+	    
+      <table class="arrows">
+	<tr>
+	  <td><a href="A2_index.html"><img src="pics/l_d_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_deliverables.html"><img src="pics/l_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_refs.html"><img src="pics/r_arw.png"></a></td>
+	</tr>
+      </table>
+
+
+  </body>
+
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/A2_design_approach.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:49 GMT -->
+</html>

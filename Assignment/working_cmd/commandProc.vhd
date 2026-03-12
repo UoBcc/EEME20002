@@ -32,6 +32,9 @@ architecture behavoural of cmdProc
         INIT, LOAD_WORD, PROCESS_WORD, START_DATA_PROCESSING, WAIT_FOR_DATA_READY, SEND_DATA, WAIT_FOR_NEXT_WORD
         );
     signal curr_state, next_state: state_type;
+    signal clk: integer := 1;
 
     begin
+        -- combinational: process();
+        -- memory: process(clk);
     end behavoural;

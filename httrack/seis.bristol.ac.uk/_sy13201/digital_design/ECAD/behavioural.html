@@ -1,0 +1,730 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/behavioural.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:48:03 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Behavioural Modelling in VHDL</title>
+    <link href="style.css" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="highlight/styles/default.css">
+    <script src="highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+
+  <body style="counter-reset: h1Counter 3 h2Counter h3Counter figCounter taskCounter 2 h1IndexCounter 3 h2IndexCounter h3IndexCounter taskIndexCounter 2 tableCounter exCounter 2 exIndexCounter 2;">  
+
+    <table class="arrows">
+      <tr>
+	<td><a href="index.html"><img src="pics/l_d_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="timing.html"><img src="pics/l_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="sequential.html"><img src="pics/r_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="A2_index.html"><img src="pics/r_d_arw.png"></a></td>
+      </tr>
+    </table>
+	  
+
+
+  <ul class="noIndent">
+    <li class="h1Index"><a href="#behavioural">Behavioural Modelling in VHDL</a></li>
+    <ul class="noIndent">
+      <li class="h2Index"><a href="#processBody">The Process Body</a></li>
+      <ul class="noIndent">
+	<li class="h3Index"><a href="#sensitivityList">Processes with Sensitivity Lists</a></li>
+	<li class="h3Index"><a href="#waitStatement">Processes with WAIT Statements</a></li>
+      </ul>
+      <li class="taskIndex"><a href="#task_mux_sim">Simulating the MUX Implemented Using a Process</a></li>
+      <li class="exIndex"><a href="#ex_mux_imp">Submit your MUX implementation</a></li>
+      <li class="h2Index"><a href="#variables">Variables in a Process</a></li>
+      <li class="h2Index"><a href="#dataTypes">Data Types</a></li>
+      <li class="h2Index"><a href="#loop">Loop Constructs</a></li>
+      <Ul class="noIndent">
+	<li class="h3Index"><a href="#forLoop">FOR Loop</a></li>
+	<li class="h3Index"><a href="#whileLoop">WHILE Loop</a></li>	
+	<li class="h3Index"><a href="#loop_only">LOOP on its own</a></li>
+      </ul>
+      <li class="h2Index"><a href="#summary">Summary</a></li>
+    </ul>
+  </ul>
+
+    <h1 id="behavioural">Behavioural Modelling in VHDL</h1>
+
+	  <p>The learning objectives for this section are:
+	    <ul>
+	      <li>To become familiar with syntax of the <a class="unix">PROCESS</a> construct;</li>
+	      <li>To understand the behaviour of variables in processes;</li>
+	      <li>To become familiar with behavioural modelling using conditional statements in processes.</li>
+	      <li>To become familiar with different data types and use of package constructs for numeric operations.</li>
+	      <li>To become familiar with the syntax and limitations of <a class="unix">LOOP</a> constructs.</li>
+	    </ul>
+	  </p>
+
+    <h2 id="processBody">The Process Body</h2>
+	  <p>We defined processes in <a href="timing.html">Section 3.2</a> as either a signal assignment or a collection of statements inside an explicitly declared process body. In this section we will look at how combinational and sequential logic can be modelled using process bodies. A <a class="unix">PROCESS</a> has a collection of <a class="emph1" href="terms.html#sequential">sequential</a> statements, i.e., each statement is executed in order from top to bottom, similar to a conventional programming language. Because of the sequential flow of statements, a process body allows us to use <a class="emph1" href="terms.html#behavioural">high-level behavioural</a> constructs with conditional statements.
+	  
+	  <h3 id="sensitivityList">Processes Using Sensitivity Lists</h3>
+	  
+	  <p>In <a href="timing.html">Section 3.3</a> we implemented a MUX in two ways; in one we modelled the functionality of the logic gates directly and 'wired' them up, while in the other we used a one-line explicit MUX construct. Consider yet another implementation of a multiplexer:</p>
+
+	  <pre>
+	    <code class="vhdl">
+	      ENTITY mux IS
+	        PORT (
+	          a:IN BIT;
+	          b:IN BIT;
+	          address:IN BIT;
+	          q:OUT BIT
+	       );
+	      END mux;
+
+	      ARCHITECTURE sequential OF mux IS
+	      BEGIN
+	        select_proc : PROCESS (a,b,address)
+	        BEGIN
+	          IF (address = '0') THEN
+	            q <= a;
+		  ELSIF (address = '1') THEN
+		    q <= b;
+		  END IF;
+		END PROCESS select_proc;
+	      END sequential;
+	    </code>
+	  </pre>
+
+	  <p>As per our convention all keywords are shown in upper-case. This process has a label <a class="unix">select_proc</a> which is optional. The statements inside the process body execute one after the other. The process gets activated whenever an event occurs on one of the signals in the sensitivity list, specified in parenthesis after the keyword <a class="unix">PROCESS</a> at the beginning, which are <a class="unix">a</a> and <a class="unix">b</a>. It then runs through all the statements and suspends, to be awakened again upon an event on one of the signals in the sensitivity list.</p>
+
+	  
+	  <div class="note">
+	      <ul>
+		<li>If you don't add all signals that are read to the process sensitivity list, the process won't be triggered even if there are events on the inputs. <a class="emph2">This is a common source of error in simulation.</a> If a signal is read inside a process, it should always be in the sensitivity list of the process.</li>
+		<li>In this example, signals that are read comprise all signals on the <a class="emph2">right-hand side of the assignment operator</a> (i.e., <a class="unix">a</a> and <a class="unix">b</a>), and all signals read inside of the conditional operators <a class="unix">IF</a> and <a class="unix">ELSIF</a> (i.e., <a class="unix">address</a>).</li>
+	      </ul>	  
+	  </div>
+
+	  <p>The <a class="unix">IF-THEN-ELSE</a> form of conditional checking can only be used inside a <a class="unix">PROCESS</a> body. The
+ <a class="unix">dataflow</a> architecture in the "mux.vhd" file shows how a conditional statement can be implemented outside a process body:</p>
+
+	  <pre>
+	    <code class="vhdl">
+	      ARCHITECTURE dataflow OF mux IS
+	      BEGIN
+	        q <= a WHEN address = '0' ELSE b;
+	      END dataflow;
+ 	    </code>
+	  </pre>
+
+	  <p>In both approaches it is important that the value of the output is specified in all possible selection branches. As we are implementing combinational logic in both instances, by definition, the output always has to be driven by the inputs. As <a class="unix">address</a> is a single bit, it can take the values of <a class="unix">'0'</a> and <a class="unix">'1'</a>. Thus the value of the output for both possibilities has to be specified. If instead, <a class="unix">address</a> was a 2-bit vector (for example), then there are four branches in the conditional tree, and the output has to be specificied for all four possibilities.</p>
+	  <p>An example of a concurrent MUX with a 2-bit selection input is given below, for an entity named <a class="unix">mux4</a>, with data inputs <a class="unix">a</a>, <a class="unix">b</a>, <a class="unix">c</a> and <a class="unix">d</a>, 2-bit wide input select vector <a class="unix">select</a>, and output <a class="unix">q</a>.</p>
+
+	  <pre>
+	    <code class="vhdl">
+	      ARCHITECTURE example1 OF mux4 IS
+	      BEGIN
+	        q <= a WHEN select = "00" ELSE
+		   b WHEN select = "01" ELSE
+		   c WHEN select = "10" ELSE
+		   d;
+	      END mux4;
+ 	    </code>
+	  </pre>
+
+	  <p>Here too, we have specified the behaviour for all possible selection outcomes, using the final <a class="unix">ELSE</a> clause to choose the selection branch corresponding to select being "11". The following code would not only be functionally wrong, it would violate the semantical requirement
+that the output in combinational logic should always be driven by the inputs, as we don't explicitly specify what should happen to the output when <a class="unix">select</a> is "11".</p>
+
+	  <pre>
+	    <code class="vhdl">
+	      ARCHITECTURE bad_example OF mux4 IS
+	      BEGIN
+	        q <= a WHEN select = "00" ELSE
+		   b WHEN select = "01" ELSE
+		   c WHEN select = "10";
+	      END mux4;
+ 	    </code>
+	  </pre>
+
+
+	  <p>It would however (perhaps unfortunately) compile, as it is syntactically correct. Even if we were uninterested in the value of <a class="unix">y</a> when select is "11", this is not the correct way to describe the functionality. Unspecified conditional branches imply sequential logic, i.e., logic that holds the output at some value when the inputs do not explicitly drive it. Hence this code would synthesise to some hardware that is completely different from what you intended. </p>
+
+	  <p>We could however use a final <a class="unix">ELSE</a> to cover many outcomes should the functionality dictate it. For example, imagine that in the above case, we had only three different assignment requirements, that <a class="unix">y</a> should be assigned <a class="unix">a</a> when <a class="unix">select</a> is "00", <a class="unix">b</a> when "11" and <a class="unix">c</a> when "01" or "10". The following code implements this functionality, while ensuring that all selection branches are covered:</p>
+
+	  <pre>
+	    <code class="vhdl">
+	      ARCHITECTURE example2 OF mux4 IS
+	      BEGIN
+	        q <= a WHEN select = "00" ELSE
+		   b WHEN select = "11" ELSE
+		   c;
+	      END mux4;
+ 	    </code>
+	  </pre>
+	  
+	  <p>Here the final <a class="unix">ELSE</a> clause covers both the "10" and "01" branches.</p>
+
+
+	  <div class="note">
+	      <ul>
+		<li>A MUX can be implemented using sequential, conditional branching logic steps inside a process body, or using a concurrent construct outside a process body. Both methods are equivalent, and you can use whatever makes the code more readable.</li>
+		<li>Whatever method you use, be sure to specify a value for the output in every conditional branch, as otherwise some unknown sequential logic is implied.</li>
+	      </ul>	  
+	  </div>
+
+
+
+	  <h3 id="waitStatement">Processes Using wait Statements</h3>
+
+
+	  <p>Instead of a sensitivity list, it is also possible to have a <a class="unix">WAIT</a> statement. The following sequential2 implementation uses a <a class="unix">WAIT</a> statement and is functionally completely equivalent to the sequential implementation that had a sensitivity list, and used sequential conditional statements (using <a class="unix">IF-THEN-ELSE</a> clauses) to implement a MUX:</p>
+
+
+	  <pre>
+	    <code class="vhdl">
+	      ARCHITECTURE sequential2 OF mux IS
+	      BEGIN
+	        select_proc : PROCESS
+	        BEGIN
+	          IF (address = '0') THEN
+	            q <= a;
+		  ELSIF (address = '1') THEN
+		    q <= b;
+		  END IF;
+		  WAIT ON a,b,adress;
+		END PROCESS select_proc;
+	      END sequential2;
+ 	    </code>
+	  </pre>
+
+	  <p>How this works is that the process will run once after initialisation and then suspend at the <a class="unix">WAIT</a> statement. The signals specified in the <a class="unix">WAIT ON</a> clause are then monitored for activity; anytime there is an event on <a class="unix">a</a> or <a class="unix">b</a>, the process awakens and executes the code between <a class="unix">BEGIN</a> and <a class="unix">WAIT</a>.</p>
+	  
+
+	  <div class="note">
+	      <ul>
+		<li>A <a class="unix">PROCESS</a> cannot have both a sensitivity list and <a class="unix">WAIT</a> statements, it has to be one or the other.</li>
+	      </ul>	  
+	  </div>
+
+	  <p>It is possible to use more than one <a class="unix">WAIT</a> statement in the same process. In this case, the process will pause at <a class="unix">WAIT</a> statements in the order in which they are encountereed, and monitor signals specified in the <a class="unix">WAIT ON</a> clause to reawaken the process. Once awakened, the statements up to the next <a class="unix">WAIT</a> process will be executed, before the process suspends again.</p> 
+	  
+	  <p>Although more than one <a class="unix">WAIT</a> statement is allowed syntactically, you should not use it in general to describe synthesisable RTL, as quite often it does not result in synthesisable logic. Most synthesis programmes do not allow more than one <a class="unix">WAIT</a> statement. The use of multiple <a class="unix">WAIT</a> statements is useful in domain specific <a class="emph1">high-level synthesis (HLS)</a> programmes which are not the focus of this unit.</p> 
+	  
+	  <p>You can avoid <a class="unix">WAIT</a> statements altogether, as everything you need to do when writing RTL for synthesis is possible with sensitivity lists, and it ensures you don't pick up bad habits, such as placing a <a class="unix">WAIT</a> statement in the middle of a code block rather than at the beginning or end, which can result in unreadable code.</p>
+
+	  <div class="note">
+	      <ul>
+		<li>In this Unit, it is recommended you <a class="emph2">use sensitivity lists</a> rather than <a class="unix">WAIT</a> statements when describing logic. It is of course perfectly fine to use <a class="unix">WAIT</a> statements for synthesis if you know how to use them <a class="emph2">correctly</a>.</li>
+	      </ul>	  
+	  </div>
+
+	  <p>You should not hesitate to use multiple <a class="unix">WAIT</a> statements inside testbenches though, as testbenches are not intended to be synthesised or even model logic. Sometimes it is very useful to be able to suspend a process for a specific amount of time, as for example in the following statement:</p>
+	  
+	  <pre>
+	    <code class="vhdl">
+	      wait for 30 ns;
+ 	    </code>
+	  </pre>
+	  
+	  <p>It goes without saying that the above statement can <a class="emph1">never</a> be synthesised!</p>
+
+	  <p>Finally, it is worth emphasising again that a single line signal assignment is equivalent to a process with all the signals on the right-hand side of the assignment operator being in the sensitivity list. For example, the following signal assignment:</p>
+	  
+	  <pre>
+	    <code class="vhdl">
+	      Y <= (A NAND B) OR C;
+ 	    </code>
+	  </pre>
+	  
+	  <p>is identical in terms of functionality to the following process.</p>
+
+	  <pre>
+	    <code class="vhdl">
+	      PROCESS(A, B, C)
+	      BEGIN
+	        Y <= (A NAND B) OR C;
+	      END PROCESS;
+ 	    </code>
+	  </pre>
+	  
+	  <p>Also as mentioned previously, collections of processes describe the functionality of the component, whether the processes are implicit or explicit.</a>
+	  
+	<div class="taskBox">  
+	<a class="task" id="task_mux_sim">Simulating the MUX Implemented Using a Process</a>		  
+	<ul><ol class="taskItem">
+	  <li>Copy the code of the <a class="unix">sequential</a> architecture body given at the beginning of Section 4, and paste it into the "mux.vhd" file to provide a third implementation of the MUX.</li>
+	  <li>Add a fourth implementation in an architecture body entitled <a class="unix">bool</a>, based on the logic equations you derived in <a href="timing.html">Exercise 3.3A</a> 1.</li> 
+	  <li>Modify the testbench by adding two extra signals <a class="unix">seqResult</a> and <a class="unix">boolResult</a>, and instantiating two new components bound to the <a class="unix">sequential</a> and <a class="unix">bool</a> architectures, with the same inputs as the others but with <a class="unix">seqResult</a> and <a class="unix">boolResult</a> as the outputs respectively.
+
+	    <div class="note">
+	      <ul>
+		<li>It is important that you stick to the specified naming convention as your programme will be checked using an automated testbench that will assume those signal and architecture names. The testbench supplied for <a class="emph2">Task3.4A</a> uses the specified names so that you can check for any typos. This testbench should compile and run with your "mux.vhd" file with no modifications.</li>
+		<li><a class="emph2">Throught these exercises a compilation error as a result of failing to conform to the specified naming convention will result in an automatic penalty up to a maximum of 30% deduction for that question, even if the syntax is correct</a>. Discipline in conforming to specifications is very
+important in writing code, and this policy will apply to all questions / assignments where you have to submit source code as the entirety or part of the answer.</li>
+	      </ul>		  
+	    </div>
+	  </li>
+
+	  <li>Observe the outputs of the components you added, and check if the outputs are identical to the outputs from the other components (disregarding the glitches). If the outputs are not identical (disregarding the glitches) make any necessary corrections to the code of the components you added.</li>
+	</ol>
+</ul>
+	</div>
+
+	<br>
+	  
+	<div class="exBox">
+	<a class="ex" id="ex_mux_imp">Submit your MUX implementation with four implementations</a>		  
+	<ul><ol class="taskItem">
+	    <li>Submit your "mux.vhd" source as the answer to <a class="answer">Quiz 1, Question 5</a>. Make sure you implement four implementations with the same outputs (including the provided sequential architecture). And mention which implementation do you prefer and the possible reason?</a>
+	</ol>
+</ul>
+	</div>
+	<br>
+
+<h2 id="variables">Variables in a Process</h2>
+    <p>A <a class="unix">VARIABLE</a> is a value holder in VHDL, that can only be declared and used within a <a class="unix">PROCESS</a>; i.e.,
+its scope is limited to the process in which it was declared. The syntax is illustrated in the following code:</p>
+
+      <pre>
+	<code class="vhdl">
+	  ENTITY decoder IS
+	    PORT (
+	      a:IN BIT_VECTOR(2 DOWNTO 0); -- BIT_VECTOR is a 1D array of BIT
+	      q:OUT BIT_VECTOR(7 DOWNTO 0)
+	  );
+	  END decoder;
+
+	  ARCHITECTURE behav OF decoder IS
+	  BEGIN
+	    PROCESS(a)
+	      -- variable scope is internal to process
+	      variable var_out: BIT_VECTOR(7 DOWNTO 0);
+	    BEGIN
+	      CASE a IS  
+	        WHEN "000" => var_out := "00000000"; -- zero
+	        WHEN "001" => var_out := "00000010"; -- one
+	        WHEN "010" => var_out := "00000100"; -- two
+                WHEN "011" => var_out := "00001000"; -- three
+	        WHEN "100" => var_out := "00010000"; -- four
+                WHEN "101" => var_out := "00100000"; -- five
+                WHEN "110" => var_out := "01000000"; -- six
+                WHEN "111" => var_out := "10000000"; -- seven
+                WHEN OTHERS => var_out :="11111111"; -- catch all else branch
+	      END CASE;
+              q <= var_out;      
+            END PROCESS;
+          END behav;
+ 	</code>
+      </pre>
+
+
+    <p>There are a few things going on here; firstly, note how the variable declaration takes place after the process keyword and before begin, how the scope is local to the process in which the variable is declared, and the different symbol for assignment (i.e., <a class="unix">:=</a> compared  to <a class="unix"><=</a> for signal asignments).</p> 
+    
+    <p>There is also a new construct, <a class="unix">CASE</a>. The <a class="unix">CASE</a> construct offers a compact way of implementing a flat conditional selection tree. When there are multiple choices as in this case, a <a class="unix">CASE</a> structure is more readable than multiple nested <a class="unix">IF-THEN-ELSE</a> clauses. Note the trailing <a class="unix">WHEN OTHERS</a> statement which acts as a catch-all branch when none of the conditions to that point are met. In this particular case having this line is superfluous as all possible conditions are enumerated. Nevertheless, always having this clause is a good idea to ensure that if a possible branch or branches are missed out, perhaps accidentally, the logic functionality is specified. As we learnt earlier in this section, omitting a conditional branch implies sequential rather than combinational logic.</p>  
+
+    <p>In terms of timing, variables and signals are fundamentally different, in that variable assignments incur no assignment delay, and their values are updated immediately; i.e., simulation time does not need to advance for <a class="unix">VARIABLE</a> values to be updated. <a class="emph2">Does this mean that you can use variables and "bypass" the signal assignment delay and its semantic implications?</a></p>
+
+    <p>Not at all. Variables are internal in scope to a process. To communicate outside a process you need to use signals that are declared within the architecture body and are external to the process. Thus, even if you use variables within a process, updating of a signal or signals need to take place for the values stored in the variables to be read outside the process.</p>
+
+    <p>Variables may be useful in enforcing <a class="emph1">encapsulation</a> and hiding the internal details of a module. Variables are certainly useful in test benches.</p> 
+
+
+    <h2 id="dataTypes">Data Types</h2>
+
+      <p>To this point we have used the native types <a class="unix">BIT</a> and <a class="unix">BIT_VECTOR</a> which is just a 1-D array of <a class="unix">BIT</a> scalars. While a binary type such as <a class="unix">BIT</a> which can take the value <a class="unix">'0'</a> or <a class="unix">'1'</a> is sufficient to describe binary logic, in hardware, at least one other value is essential, high impedance or <a class="unix">'Z'</a>. A node is considered to be high impedance when it is not explicitly driven, but left floating, as would happen for example with a tri-state driver that can disconnect the output.</p> 
+
+      <p>In practice, several other values are useful, and the  <a class="unix">STD_ULOGIC</a> <a class="emph2">(note the 'U' before LOGIC)</a> type defines nine values in total:
+	<ul>
+	  <li><a class="unix">'U'</a>: Uninitialized. The value has not been set to anything. Often seen at the beginning of a simulation before a global or system reset and signals have not been given an initial value.</li>
+	  <li><a class="unix">'X'</a>: Unknown with a strong signal drive. The signal is driven to a value that cannot be determined. This is often the result of some error, for example a signal being driven simultaneously to <a class="unix">'0'</a> and <a class="unix">'1'</a>.</li>
+	  <li><a class="unix">'0'</a>: logic zero with a strong signal drive.</li>
+	  <li><a class="unix">'1'</a>: logic one with a strong signal drive.</li>
+	  <li><a class="unix">'Z'</a>: High Impedance.</li>
+	  <li><a class="unix">'W'</a>: Weak unknown with a weak signal drive. If a signal has two drivers, one weak, and the other strong, the strong driver will win out. For example, an old fashioned bus interface with pull-up resistors would have several weak highs or <a class="unix">'H'</a> (see below) and a strong <a class="unix">'0'</a>, when the strong zero would win.</li>
+          <li><a class="unix">'L'</a>: logic 0 with a weak signal drive.</li>
+	  <li><a class="unix">'H'</a>: logic '1' with a weak signal drive.</li>
+	  <li><a class="unix">'-'</a>: Don't care. Used in synthesis tools to denote don't cares for logic optimisation.</li>
+	</ul>
+      </p>
+
+      <p>The <a class="unix">STD_ULOGIC</a> type is an example of an <a class="emph1">enumerated</a> type. It is defined in an IEEE package called <a class="unix">STD_LOGIC_1164</a> as:</p>
+
+       <pre>
+	<code class="vhdl">
+	  TYPE std_ulogic IS ( 'U',  -- Uninitialized
+                               'X',  -- Forcing  Unknown
+                               '0',  -- Forcing  0
+                               '1',  -- Forcing  1
+                               'Z',  -- High Impedance   
+                               'W',  -- Weak     Unknown
+                               'L',  -- Weak     0       
+                               'H',  -- Weak     1       
+                               '-'   -- Don't care
+                             );
+ 	</code>
+      </pre>	
+	
+
+      <p>The <a class="unix">STD_LOGIC</a> type is a resolved version of the <a class="unix">STD_ULOGIC</a> type. The type definition includes a <a class="emph1">resolution</a> function, providing a means of resolving the value of a signal with multiple drivers based on rules such as the one above, where a strong driver wins out. What this means is that if you drive a signal simultaneously with two drivers, it won't result in a compilation error. However, this still has serious implications for synthesis. If you do need to drive the same signal (wire) with two drivers (for example in modelling a bus), you have to pay special consideration to the implementation. Generally, we won't require the resolution capability of the <a class="unix">STD_LOGIC</a> type in this course. Therefore, it's better to <a class="emph2">always use the</a> <a class="unix" style="font-weight:600">STD_ULOGIC</a> <a class="emph2">type</a>, as that way, if you mistakenly assign the same signal in two places, the compiler will tell you immediately and you can fix the error.</p>
+
+      <p> Both <a class="unix">STD_ULOGIC</a> and <a class="unix">STD_LOGIC</a> types can be declared as scalars or vectors (1-D arrays). i.e., <a class="unix">STD_ULOGIC_VECTOR</a> and <a class="unix">STD_LOGIC_VECTOR</a>. similar to <a class="unix">BIT</a> and <a class="unix">BIT_VECTOR</a>. However, you cannot perform arithmetic operations on these data types directly, you have to use derived types that interpret the bit vectors as a binary number, either in unsigned or signed representation.</p>
+
+      <p>There are generally two widely used packages, <a class="unix">NUMERIC_STD</a> and <a class="unix">STD_LOGIC_ARITH</a>, which are more or less equivalent. The latter has origins in a proprietary library from Synopsys and is a de facto standard, whereas the former was designed from scratch for consistency and is supported by an IEEE standard ensuring that different vendors implement it in exactly the same way. <a class="emph2">Therefore you should always use</a> <a class="unix" style="font-weight:600">NUMERIC_STD</a> <a class="emph2">for new designs</a> unless you're dealing with legacy code which uses types defined in <a class="unix">STD_LOGIC_ARITH</a>.</p>
+
+      <p>The <a class="unix">NUMERIC_STD</a> package implements two types, <a class="unix">UNSIGNED</a> and <a class="unix">SIGNED</a>. Physically, these types are identical to the <a class="unix">STD_LOGIC_VECTOR</a> type in that they are 1-D arrays (i.e., vectors) of <a class="unix">STD_LOGIC</a>. The type declaration for these two types are:</p>
+
+       <pre>
+	<code class="vhdl">
+	  --------
+	  type UNSIGNED is array ( NATURAL range <> ) of STD_LOGIC;
+	  type SIGNED is array ( NATURAL range <> ) of STD_LOGIC;
+	  --------
+ 	</code>
+      </pre>
+
+	  
+      <p>Declaring a signal as <a class="unix">UNSIGNED</a> for a width of N (eg: <a class="unix">UNSIGNED(0 to N-1)</a>, <a class="unix">UNSIGNED(N-1 DOWNTO 0)</a> etc) causes the bit vector to be interpreted as an unsigned integer with values ranging from 0 to 2<sup>N-1</sup>. Declaring a signal as <a class="unix">SIGNED</a> for a width of N (eg: <a class="unix">SIGNED(0 to N-1)</a>, <a class="unix">SIGNED(N-1 DOWNTO 0)</a> etc) causes the bit vector to be interpreted as a signed integer with values ranging from -2<sup>N-1</sup> to 2<sup>N-1</sup>-1).  The following example (after Lewis <sup><a href="refs.html">[4]</a></sup>) illustrates the difference in the decimal interpretation of these types.</p>
+      
+       <pre>
+	<code class="vhdl">
+	  SIGNAL A_unsigned   : UNSIGNED 3 downto 0;
+	  SIGNAL B_signed     : SIGNED 3 downto 0;
+	  SIGNAL C_stdLogVect : STD_LOGIC_VECTOR (3 downto 0);
+
+	  A_unsigned   <= "1111";  -- decimal 15
+	  B_signed     <= "1111";  -- decimal -1
+	  C_stdLogVect <= "1111";  -- open to any interpretation
+ 	</code>
+      </pre>
+
+      <p>Not only does the <a class="unix">NUMERIC_STD</a> package provide the capability to perform comparison and arithmetic operations on <a class="unix">UNSIGNED</a> and <a class="unix">SIGNED</a> types, it allows <a class="unix">UNSIGNED</a> / <a class="unix">SIGNED</a> operands to be combined with <a class="unix">INTEGER</a> operands by providing overloaded functions for the relevant numeric and comparison operators. The package also includes conversion functions. These are summarised below. All of these operators and functions are supported for synthesis.</p>
+
+      <div class="emphList">
+
+      <ul>
+	<li style="font-weight:600">Arithmetic operators (for <a class="unix">UNSIGNED</a> / <a class="unix">SIGNED</a> and <a class="unix">INTEGER</a> operands).
+	  <ul style="font-weight:300">
+	    <li><a class="unixEmph">ABS</a> (Return absolute value; Usage: <a class="unixEmph">ABS(a);</a> )</li>
+	    <li><a class="unixEmph">+</a> (Add; Usage: <a class="unixEmph">a+b; a+10;</a> )</li>
+	    <li><a class="unixEmph">-</a> (Subtract; Usage: <a class="unixEmph">a-b; 10-a; a-10;</a> )</li>
+	    <li><a class="unixEmph">*</a> (Multiply; Usage: <a class="unixEmph">a*b; 10*a; a*10;</a> )</li>
+	    <li><a class="unixEmph">/</a> (Divide; Usage: <a class="unixEmph">a/b; 10/a; a/10;</a> )</li>
+	    <li><a class="unixEmph">REM</a> (Remainder, defined as A REM B = A-(A/B)*B; result has sign of 1st operand; Usage: <a class="unixEmph">a REM b</a> )</li>
+	    <li><a class="unixEmph">MOD</a> (Modulus, defined as A mod B = A  B * N for integer N; result has sign of 2nd operand; Usage: <a class="unixEmph">a MOD b</a> )</li>
+	  </ul>
+	</li> 
+	<lis style="font-weight:600">Comparison operators  (for <a class="unix">UNSIGNED</a> / <a class="unix">SIGNED</a> and <a class="unix">INTEGER</a> operands).
+	  <ul style="font-weight:300">
+	    <li><a class="unixEmph">></a> (Greater than)</li>
+	    <li><a class="unixEmph"><</a> (Less than)</li>
+	    <li><a class="unixEmph"><=</a> (Less than or equal to)</li>
+	    <li><a class="unixEmph">>=</a> (Greater than or equal to)</li>
+	    <li><a class="unixEmph">=</a> (Equal to)</li>
+	    <li><a class="unixEmph">/=</a> (Not equal to)</li>
+	  </ul>
+	</li>
+	<li style="font-weight:600"> Shift functions (for <a class="unix">UNSIGNED</a> / <a class="unix">SIGNED</a> operands).
+	  <ul style="font-weight:300">
+	    <li><a class="unixEmph">SHIFT_LEFT</a> (Usage: <a class="unixEmph">SHIFT_LEFT(a,n)</a> where a is vector and n is number of times to left shift. The vacated positions are filled with '0'. If the vector is a SIGNED type, the leftmost sign bit is untouched.)</li>
+	    <li><a class="unixEmph">SHIFT_RIGHT</a>  (Usage: <a class="unixEmph">SHIFT_RIGHT(a,n)</a> where a is vector and n is number of times to right shift. The vacated positions are filled with Bit '0'. If the vector is a SIGNED type, the leftmost sign bit is untouched.)</li>
+	    <li><a class="unixEmph">ROTATE_LEFT</a> (Usage: <a class="unixEmph">ROTATE_LEFT(a,n)</a> where a is vector and n is number of times to rotate left. If the vector is SIGNED type, sign bit is not treated any differently.)</li>
+	    <li><a class="unixEmph">ROTATE_RIGHT</a>(Usage: <a class="unixEmph">ROTATE_RIGHT(a,n)</a> where a is vector and n is number of times to rotate right. If the vector is SIGNED type, sign bit is not treated any differently.)</li>
+	    <li><a class="unixEmph">RESIZE</a>(Usage: <a class="unixEmph">RESIZE(a,n)</a> where a is vector and n is the new size. To create a larger vector, the new [leftmost] bit positions are filled with '0' for UNSIGNED operands and with the sign bit for SIGNED operands. When truncating the leftmost bits are dropped for UNSIGNED operands, while the sign bit is retained along with the rightmost part for SIGNED operands.</li>
+	  </ul>
+	</li>
+	<li style="font-weight:600"> Conversion functions
+	  <ul style="font-weight:300">
+	    <li>Converting betwen <a class="unixEmph">STD_ULOGIC_VECTOR</a> and <a class="unixEmph">UNSIGNED</a> / <a class="unixEmph">SIGNED</a> only requires <a class="emph2">type casting</a>.</li> 
+	    <li>Converting to and from integer requires a conversion function
+	      <ul>
+		<li><a class="unixEmph">TO_INTEGER</a> (Usage: <a class="unixEmph">TO_INTEGER(a)</a> where a is vector.)</li>
+		<li><a class="unixEmph">TO_UNSIGNED</a> (Usage: <a class="unixEmph">TO_UNSIGNED(a,n)</a> where a is vector and n is width of array.)</li>
+		<li><a class="unixEmph">TO_SIGNED</a> (Usage: <a class="unixEmph">TO_SIGNED(a,n)</a> where a is vector and n is width of array.)</li>
+	    </li>
+	  </ul>
+	</li>
+      </ul>
+
+      </div>	
+
+
+      <p>We can use these data types and associated utility functions by including the IEEE library and related packages by including the following lines at the top of the VHDL file:</p>
+
+      <pre>
+	<code class="vhdl">
+	  LIBRARY ieee;
+	  USE ieee.std_logic_1164.ALL;
+	  USE ieee.numeric_std.ALL;
+ 	</code>
+      </pre>
+      
+      <p>The first line above simply declares that we will use packages contained in this library. With the next two lines we declare that we will use all of the constructs in two packages called <a class="unix">std_logic_1164</a> (defining the <a class="unix">std_ulogic</a> and derivative types such as <a class="unix">std_logic</a> and related utilities) and <a class="unix">numeric_std</a> (implementing numeric operations). </p>
+
+    <h2 id="loop">Loop Constructs</h2>  
+    
+    <p>VHDL offers two loop constructs, the FOR loop and the WHILE loop which <a class="emph2">need to be used with extreme care</a> when writing code for synthesis. Loop constructs in HDLs are synthesised by unrolliing the loop and essentially making copies of the function being iterated. The number of copies is the number of times the loop is iterated. Thus, <a class="emph2">only loops where the limits of the loop index are constant can be synthesised</a>. This makes complete sense if you think about it: how can you make copies of a function in hardware if the number of copies is variable? <a class="emph2">Synthesising loops where the loop range is not fixed is impossible</a>.</p>
+
+    <h3 id="forLoop">FOR Loop</h3>
+    
+    <p>The <a class="unix">FOR LOOP</a> repeatedly executes a set of statements contained within the <a class="unix">FOR LOOP</a> body. The loop index and loop boundaries are part of the construct. Given below is an example which will synthesise.</p>
+
+    <pre>
+      <code class="vhdl">
+	LIBRARY ieee;
+	USE ieee.std_logic_1164.ALL;
+	USE ieee.numeric_std.ALL;
+ 
+	ENTITY add_bcd IS
+	  PORT (
+	    a:IN STD_ULOGIC_VECTOR(0 TO 11); -- 3 BCD digits
+	    q:OUT STD_ULOGIC_VECTOR(0 TO 4)
+	  );
+	END add_bcd;
+
+	ARCHITECTURE for_loop OF add_bcd IS
+	  SIGNAL sig1: UNSIGNED(0 to 11);
+	BEGIN
+	  PROCESS(sig1)
+	    -- variable of type integer with constrained range and initial value
+	    VARIABLE tmp:INTEGER RANGE 0 TO 27:=0;  -- store the sum
+	  BEGIN
+	      FOR i IN 0 TO 2 LOOP
+	        tmp:=tmp+TO_INTEGER(sig1(0+i*4 to 3+i*4));
+	      END LOOP;
+	      q <= STD_ULOGIC_VECTOR(TO_UNSIGNED(tmp,5));      
+	  END PROCESS;
+	  sig1 <= UNSIGNED(a);
+	END for_loop;
+      </code>
+    </pre>
+ 
+    <p>This example brings together several of the constructs introduced in the previous few sections. First of all, the functionality of the <a class="unix">add_bcd</a> component is to add three binary-coded decimal (BCD) numbers together. In BCD format decimal digits are represented by four bits which can take values between '0' (i.e., "0000") and '9' (i.e., "1001"). In the BCD format the values from decomal '10' to decimal '15' i.e., bit patterns  "1010" through "1111" have no relevance. There is also no sign bit so all BCD digits are positive.</p> 
+    <p>The BCD numbers are presented packed together on a single input line <a class="unix">a</a>. The first four bits represent the first BCD digit, the next four bits the second digit and so on. The input and output vectors are declared as <a class="unix">STD_ULOGIC_VECTOR</a>.</p>
+
+    <p>The straightforward method to perform the addition is to convert each BCD number to integer form, and add the three integers. It is of course possible to convert from BCD to integer form using the definition of BCD, i.e., int=b<sub>0</sub>*2<sup>0</sup>+b<sub>1</sub>*2<sup>1</sup>+b<sub>2</sub>*2<sup>2</sup> where b<sub>0</sub> is the least signficant (right-most) bit in the bits making up a BCD digit. It is, however, much simpler to use the built-in conversion functions available in the <a class="unix">NUMERIC_STD</a> package. A signal of type <a class="unix">UNSIGNED</a> called <a class="unix">sig1</a> is declared to which the input lines are connected. As the input is of type <a class="unix">STD_ULOGIC_VECTOR</a> and the signal is of type <a class="unix">UNSIGNED</a>, the strong typing rules of VHDL prevent a direct assignment; i.e., the line <a class="unix"> sig1 <= a;</a> will result in a syntax error being thrown by the compiler, which will report a type mismatch. A simple type casting <a class="unix"> sig1 <= UNSIGNED(a);</a> will suffice to meet the strong typing rules. In this case a conversion function is not needed because both <a class="unix">STD_ULOGIC_VECTOR</a> and <a class="unix">UNSIGNED</a> share the same subtype.</p>
+
+    <p>The incoming BCD digits are available on the <a class="unix">sig1</a> signal as a <a class="unix">SIGNED</a> vector because of the assignment <a class="unix"> sig1 <= UNSIGNED(a);</a>. Thus, it is possible to use the built-in conversion function <a class="unix">TO_INTEGER</a> to convert the buts contained in this vector to integer format. It is possible to access a <a class="emph1">bit slice</a> of any vector by using the appropriate index range. In this case, as there are three BCD digits, it is convenient to use a loop. A variable of type <a class="unix">INTEGER</a> is declared to store the sum which is iteratively calculated within the body of the loop. Note that the maximum sum of any three BCD digits is 27. Thus, the declaration restricts the range of the integer to be between 0 and 27. <a class="emph2">Declaring a range for integers genarlly results in more efficient hardware, as the synthesiser can use the minimum number of bits required to implement the range</a>, in this case 5, rather than the standard width, which is usually 32. A 5-bit adder consumes far less power than a 32-bit adder. <a class="emph2">As statements inside a</a> <a class="unix">PROCESS</a> <a class="emph2">body are executed sequentially</a>, the sum is calculated and then assigned to the output. As the output is of type <a class="unix">STD_ULOGIC_VECTOR</a>, this assignment also requires type casting. <a class="emph2">Note that the process body itself and the signal assignment outside the process body are concurrent</a>. This means, for example, the order in which the process body and the assignment to <a class="unix">sig1</a> occur are not important.</p>
+
+
+    <div class="emphBox">
+    <p><sup><a style="font-weight:600;color:red">A</a></sup>This comes with a caveat. If the targeted hardware platform only has adders of a given width, restricting the range may not reduce the bit width. nevertheless it is good practice to always restrict the range, to provide the synthesiser with the maximum amount of information. Also, implementation errors may be caught in a simulation if the range exceeds the declared range, which may be missed if the bit width is not restricted. Of course this also applies for other supported arithmetic operators, eg: multiplication.</p>
+    </div>
+
+    <p>The variable is initialied to zero, and having an initial value of zero is clearly essential for realising the correct functionality. This works in simulation, but does this work in synthesis? i.e., can initial values for variables or signals be synthesised? That depends on the target hardware platform. If the target is a custom IC, initial values for synthesis make no sense. However, if the target is an FPGA, at time of configuration, the initial values can be loaded into the confirguration bitstream. It is always good practice though to have a hardware reset, which when <a href="terms.html">asserted</a> explicty performs initialisation. You will see how to do that when we look at implementing sequential logic in the next section.</p> 
+
+
+    <p>For the record, the loop parameter does not need to be an integer. It simply takes on the type required by the specified range. In the above example the range 0 to 2 clearly implies an integer. However, it could also be an enumerated type. For example, consider the following code which essentially populates an array with the same information in all locations:</p>
+
+    <pre>
+      <code class="vhdl">
+	PACKAGE filter IS
+	  TYPE my_filter_type is (LP, HP, BP); -- custom enumerated type (low-, high- and band-pass filters) 
+	  SUBTYPE bandwidth is INTEGER RANGE 20 to 200; -- declare a subtype of range restricted integers
+	  TYPE bandwidth_array is ARRAY (my_filter_type) OF bandwidth; -- array of range restricted integers addressed by enumerate type;
+	END filter; 
+
+	USE WORK.filter.ALL;
+
+	ENTITY writeArray IS
+	  PORT (
+	    bw:IN bandwidth ;
+	    d:OUT bandwidth_array
+	  );
+	END writeArray;
+	
+	ARCHITECTURE example OF writeArray IS
+	BEGIN
+	  PROCESS(bw)
+	  BEGIN
+	    FOR filter IN my_filter_type LOOP
+	      d(filter) <= bw;
+	    END LOOP;
+	  END PROCESS;
+	END example;
+
+	USE WORK.filter.ALL;
+
+	ENTITY tb_writeArray IS END tb_writeArray;
+	
+	ARCHITECTURE eg OF tb_writeArray IS
+	
+	  COMPONENT writeArray IS
+	    PORT (
+	      bw:IN bandwidth ;
+	      d:OUT bandwidth_array
+	    );  
+	  END COMPONENT;
+	  
+	  SIGNAL bw_in:bandwidth;
+	  SIGNAL bw_out:bandwidth_array;
+	  
+	  FOR A1:writeArray USE ENTITY work.writeArray(example);
+	  
+	BEGIN
+	  A1:writeArray PORT MAP(bw=>bw_in, d=>bw_out);
+	
+	  bw_in<=
+	   20,
+	   40 AFTER 10 ns,
+	   60 AFTER 15 ns,
+	   40 AFTER 20 ns,
+	   100 AFTER 25 ns;   
+	END eg;
+      </code>
+    </pre>
+
+    <p>Here too, the loop parameter <a class="unix">filter</a> is not declared, and the indices are asumed in order left to right of the enumerated type, i.e., <a class="unix">LP, HP and BP</a>. The array elements are addressed by the loop parameter <a class="unix">filter</a>.</p>
+
+    <p>One final thing to note is that the loop parameter cannot be written to, it can only be read.</p>
+
+    <div class="note">
+      <ul>
+	<li>The loop parameter in the <a class="unix">FOR</a> loop does not need to be declared.</li>
+	<li>The loop parameter has a constant range with <a class="emph1">static</a> bounds, i.e., 0 to 2, and thus this construct is synthesisable.</li> 
+	<li>The arithmetic operations on the loop index in the <a class="unix">add_bcd</a> example are part of the indexing and don't result in adders or multipliers. The loop is unrolled, so that hardware copies for each iteration are synthesised.</li>			      
+	<li>The loop parameter can be an integer or an enumerated type, which is inferred by the prescribed range,</li>
+	<li>As the loop parameter is not declared, it is not a true value holder, and thus can only be read, not written to.</li> 
+      </ul> 	
+    </div>
+
+    <h3 id="whileLoop">WHILE Loop</h3>
+    
+    <p>The <a class="unix">WHILE LOOP</a> repeately executes the set of statements contained within the <a class="unix">WHILE LOOP</a> body while a specified condition is true. Given below is the same example using a <a class="unix">WHILE LOOP</a> construct instead of a <a class="unix">FOR LOOP</a>.
+
+    <pre>
+      <code class="vhdl">
+	LIBRARY ieee;
+	USE ieee.std_logic_1164.ALL;
+	USE ieee.numeric_std.ALL;
+ 
+	ENTITY add_bcd IS
+	  PORT (
+	    a:IN STD_ULOGIC_VECTOR(0 TO 11); -- 3 BCD digits
+	    q:OUT STD_ULOGIC_VECTOR(0 TO 4)
+	  );
+	END add_bcd;
+
+	ARCHITECTURE while_loop OF add_bcd IS
+	  SIGNAL sig1: UNSIGNED(0 to 11);
+	BEGIN
+	  PROCESS(sig1)
+	    -- variables of type integer with constrained range and initial value
+	    VARIABLE i:INTEGER RANGE -1 TO 2;  -- loop index
+	    VARIABLE tmp:INTEGER RANGE 0 TO 27:=0;  -- store the sum
+	  BEGIN
+	      i:=-1;	
+	      WHILE (i<2) LOOP
+		i:=i+1; -- increment loop index;	  
+	        tmp:=tmp+TO_INTEGER(sig1(0+i*4 to 3+i*4));
+	      END LOOP;
+	      q <= STD_ULOGIC_VECTOR(TO_UNSIGNED(tmp,5));      
+	  END PROCESS;
+	  sig1 <= UNSIGNED(a);
+	END while_loop;
+      </code>
+    </pre>
+
+    <p>There is an important difference here. The first is that the index used to control the loop iterations is not part of the construct itself and thus needs to be explicitly declared and initialised. Also the loop index needs to be initialised inside the process body rather than at the time of variable declaration as it needs to be reset everytime the process body is run. By contrast, in the <a class="unix">FOR LOOP</a> this was automatic, as it was part of the construct itself. This code will also synthesise with a similar schematic to the <a class="unix">FOR LOOP</a> as the loop bounds are static. Clearly, though, the <a class="unix">FOR LOOP</a> was a bit more convenient to use for this example. Xilinx Vivado is able to analyse the loop and understand that the loop bounds are static and this code does synthesise. You have to bear in mind that other synthesis tools may not be able to figure this out though.</p>
+
+    <h3 id="loop_only">LOOP on its own</h3>
+
+    <p>Finally,the LOOP construct can be used on its own. <a class="emph2">In order to avoid an infinite loop an</a> <a class="unix">EXIT</a> or <a class="unix">WAIT</a> <a class="emph2">statement should be included</a>. If the loop is infinite, not only will it not synthesise, it will cause the simulation to hang. Here is another way of implementing the BCD adder which will also synthesise in Xilinx Vivado:
+
+    <pre>
+      <code class="vhdl">
+	LIBRARY ieee;
+	USE ieee.std_logic_1164.ALL;
+	USE ieee.numeric_std.ALL;
+ 
+	ENTITY add_bcd IS
+	  PORT (
+	    a:IN STD_ULOGIC_VECTOR(0 TO 11); -- 3 BCD digits
+	    q:OUT STD_ULOGIC_VECTOR(0 TO 4)
+	  );
+	END add_bcd;
+
+	ARCHITECTURE just_loop OF add_bcd IS
+	  SIGNAL sig1: UNSIGNED(0 to 11);
+	BEGIN
+	  PROCESS(sig1)
+	    -- variables of type integer with constrained range and initial value
+	    VARIABLE i:INTEGER RANGE -1 TO 2;  -- loop index
+	    VARIABLE tmp:INTEGER RANGE 0 TO 27:=0;  -- store the sum
+	  BEGIN
+	      i:=-1;	
+	      LOOP
+		i:=i+1; -- increment loop index;	  
+	        tmp:=tmp+TO_INTEGER(sig1(0+i*4 to 3+i*4));
+	        EXIT when i = 2; -- This is the exit clause
+	      END LOOP;
+	      q <= STD_ULOGIC_VECTOR(TO_UNSIGNED(tmp,5));      
+	  END PROCESS;
+	  sig1 <= UNSIGNED(a);
+	END just_loop;
+      </code>
+    </pre>
+
+    <p><a class="emph2">The key to all these implementations inferring legitimate hardware is that the loop bounds are static</a>. Here is an example of a classic mistake where the bounds are not static.</p>  
+
+    <pre>
+      <code class="vhdl">
+	----
+	ARCHITECTURE wont_synthesise OF comp IS
+	  SIGNAL sig1: INTEGER;
+	BEGIN
+	  sig1 <= in1; -- read in some value
+	  PROCESS(sig1)
+	    -- variables of type integer with constrained range and initial value
+	    VARIABLE i:INTEGER RANGE -1 TO 100;  -- loop index
+	  BEGIN
+	      i:=-1; -- increment loop index	
+	      WHILE (i < sig1) LOOP -- sig1 is not static so this won't synthesise
+		i := i+1;	 
+		-- do something
+	      END LOOP;
+	  END PROCESS;
+	END wont_synthesise;
+      </code>
+    </pre>
+
+    <p>Unbounded loops are supported for simulation, where they may be useful for example in test benches.</p> 
+
+     <div class="note">
+      <ul>
+	<li>Any <a class="unix">LOOP</a> construct, whether on its own or with <a class="unix">FOR</a> or <a class="unix">WHILE</a> constructs, is <a class="emph1">unrolled</a> to a parallel implementation of the functionality inside the loop; the number of hardware "copies" is equal to the number of iterations in the loop.</li>
+	<li>Hence a <a class="unix">LOOP</a> is <a class="emph2">only synthesisable if the lower and upper bounds are static</a>.</li>
+      </ul> 	
+    </div>
+
+    <h2 id="summary">Summary</h2>
+
+    <p>The following points were covered in this section. 
+      <ul>
+	<li>A process is a collection of statements executed sequentially. The statements comprise the process body. The process body as a whole runs concurrently with other process bodies and concurrent statements outside process bodies.</li>
+	<li>A process has to have a sensitivity list or a <a class="unix">WAIT</a> statement, but not both. The sensitivity has to comprise all signals that are read inside the process. Any events on these signals cause the process to be activated, and run from beginning to end, once. It then suspends until the next event on a signal in the sensitivity list.</li>
+	<li>Instead of a sensitvity list the process can have a <a class="unix">WAIT ON &lt;sig1&gt;, &lt;sig2&gt; ..</a> statement. The process runs and suspends at the WAIT statement, until the conditional clause (eg: an event on the named signals) is true. It is syntactically allowed to have multiple <a class="unix">WAIT</a> statements inside a process, but only processes with a single <a class="unix">WAIT</a> statement are synthesisable.</li>
+	<li>Variables can be declared in processes and used as value holders. The scope of a variable is local to the process. Variable assignments incur no simulation delay (i.e., no delta delay as in signal assignments). In order for the value of the variable to be read outside the process, its value has to be assigned to a signal.</li>
+	<li>The built-in types <a class="unix">BIT</a> and <a class="unix">BIT_VECTOR</a> don't allow the full range of values useful in modelling hardware. The <a class="unix">STD_LOGIC_1164 package in the <a class="unix">IEEE libray define an enumerated type <a class="unix">STD_ULOGIC</a> that, along with <a class="unix">STD_ULOGIC_VECTOR</a>, provide the full range of values needed to model and synthesise digital logic·</li>
+	<li>The <a class="unix">STD_LOGIC</a></a> type is a <a class="emph1">resolved</a> version of <a class="unix">STD_ULOGIC</a>. Clearly, it is not possible for two drivers to simultaneously drive the same signal. In hardware this could, for example, translate to a wire being driven simultaneously to <a class="unix">'1'</a> and <a class="unix">'0'</a>, which would resolve in a short. The STD_LOGIC type gets around this issue <a class="emph2">for simulation</a> by having a resolution which resolves between multiple drivers accoding to a priority scheme. For example, a strong <a class="unix">'1'</a> wins out over a weak <a class="unix">'0'</a>, a strong <a class="unix">'1'</a> and a strong <a class="unix">'0'</a> result in an unkown <a class="unix">'X'</a> and so on. However, this just ensures that there is no compilation error, it doesn't automatically synthesise some hardware capable of resolving between multiple drivers. It is useful in modelling hardware such as busses, but outside of a few very specific cases there is no good reason for having multiple drivers on the same wire. Thus, unless you are modelling one of these cases, using <a class="unix">STD_LOGIC</a> just masks errors. Hence always use STD_ULOGIC rather than <a class="unix">STD_LOGIC</a> as the default type.</li>
+	<li>The <a class="unix">NUMERIC_STD</a> package from the <a class="unix">IEEE</a> library define two types called <a class="unix">SIGNED</a> and <a class="unix">UNSIGNED</a>, along with their vector versions, that are basically the same as <a class="unix">STD_ULOGIC</a>, but intepret the bit vectors as signed or unsigned numbers. Arithmetic operations can be directly performed on <a class="unix">SIGNED</a> and <a class="unix">UNSIGNED</a> types, and conversion functions are available for converting between <a class="unix">SIGNED</a> / <a class="unix">UNSIGNED</a> and <a class="unix">INTEGER</a> types. There is a different <a class="unix">STD_LOGIC_ARITH</a> package which allows you to perform arithemtic operations directly on the <a class="unix">STD_LOGIC_VECTOR</a> type. However, this is an old, proprietary package which is not standardised in the way that the IEEE packages are. Always use the <a class="unix">NUMERIC_STD</a> package rather than the <a class="unix">STD_LOGIC_ARITH</a> package. Never use both.</li>
+	<li><a class="unix">LOOP</a> constructs can be used inside a <a class="unix">PROCESS</a> body. The <a class="unix">FOR LOOP</a> construct defines a loop parameter and the bounds within the construct itself. The <a class="unix">WHILE LOOP</a> construct requires the loop index to be declared separately. A <a class="unix">LOOP</a> construct with an exit clause is also possible. All three types of loop constructs can be synthesised within Vivado, but other synthesis tools may be only be able to synthesise the <a class="unix">FOR LOOP</a>. In all cases, the bounds have to be static, as synthesis consists of unrolling the loop to realise a parallel implementation.</li>
+      </ul>
+    </p> 
+
+    <table class="arrows">
+      <tr>
+		<td><a href="index.html"><img src="pics/l_d_arw.png"></a></td>
+		<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+		<td><a href="timing.html"><img src="pics/l_arw.png"></a></td>
+		<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+		<td><a href="sequential.html"><img src="pics/r_arw.png"></a></td>
+		<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+		<td><a href="A2_index.html"><img src="pics/r_d_arw.png"></a></td>
+      </tr>
+    </table>
+
+
+  </body>
+
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/behavioural.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:48:03 GMT -->
+</html>

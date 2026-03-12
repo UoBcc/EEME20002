@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/A2_deliverables.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:49 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Methodology</title>
+    <link href="style.css" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="highlight/styles/default.css">
+    <script src="highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+
+  <body style="counter-reset: h1Counter 6 h2Counter h3Counter figCounter taskCounter h1IndexCounter 6 h2IndexCounter h3IndexCounter h4IndexCounter taskIndexCounter tableCounter exCounter exIndexCounter;">   
+
+      <table class="arrows">
+	<tr>
+	  <td><a href="A2_index.html"><img src="pics/l_d_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_group.html"><img src="pics/l_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_design_approach.html"><img src="pics/r_arw.png"></a></td>
+	</tr>
+      </table>
+	  
+
+  <ul class="noIndent">
+    <li class="h1Index"><a href="#deliverables">Deliverables</a></li>
+      <ul class="noIndent">
+	<li class="h2Index"><a href="#interim">Goal and Deadline</a></li>
+	<ul class="noIndent">
+	  <li class="h3Index"><a href="#interim_cmd">Command Processor</a></li>
+	  <li class="h3Index"><a href="#interim_data">Data Processor</a></li>
+	  <li class="h3Index"><a href="#interim_report">Report</a></li>
+	</ul>
+	<li class="h2Index"><a href="#final">Final Goal and Deadline</a></li>
+      </ul>
+  </ul>
+
+
+       <h1 id="deliverables">Deliverables</h1>
+  
+	    <p>Each group has the same set of deliverables, but the way groups interpret data is different. If your group number is odd, you should treat the bytes deleivered by the data source as unsigned; if your group number is even, you should treat the bytes delivered by the data source as signed.</p>
+
+	    <h2 id="interim">Goal and Deadline</h2>
+
+	    <p>One team should develop the Command Processor module, which will interpret the specified commands typed into the command terminal, and print the requisite responses. The other team should develop the Data Processor module that communicates with the supplied Data Generator module and detects the peak in a given sequence.</p>
+
+	    <p>All students should attend each of these sessions, and also spend time on your own with your team members as needed to complete the required tasks.</p> 
+	    
+	    <p>Details of the three deliverables are given in <a href="#">Section 7.2.1.A (Command Processor)</a>, <a href="#">Section 7.2.1.B (Data Processor)</a> and <a href="#">Section 7.2.1.C (Report)</a>. Please check the Assignment section in Blackboard for access to artefacts available for download. Template testbenches are provided for both the command and data processors.</p>
+
+	    
+	    <div class="note">
+	      <ul>
+		<li>The compliance of your source code submission with the specifications described under Section 7.2.1.A and Section 7.2.1.A will be very strictly checked. If your submission for the command processor or the data processor does not conform to specifications, you will not get any marks for functionality.</li>
+		<li>Though the functionality is checked in a simulation, the code should be written in an RTL style that conforms to the synthesis guidelines and uses the templates for inferring combination and sequential logic described in pre-Assignment. Marks will be awarded for good design practice, and the synthesisability of the code. A submission that does not adhere to the good design practices outlined in the pre-Assignment and does not synthesise will likely get low marks, even though full functional compliance is met in a simulation.</li>
+	      </ul>
+	    </div>
+	    
+	    <p>Finally, please note that all deliverables pertaining to a group should be submitted as a single submission; i.e. one member of the group should submit everything in one go, as subsequent submissions will overwrite previous submissions.</p>
+	    
+	    <h3 id="interim_cmd">Command Processor</h3>
+	      
+	    <p>The Command Processor unit should demonstrate functional compliance to the process bytes command in a simulation. Printing "ANNN" or "aNNN" where NNN is a three decimal digit sequence from 000 to 999 should result in the requested number of bytes being retrieved from the synthesised version of the Data Processor, and transmitted through a UART Tx module in the format that will result in the output being printed in the PuTTy terminal. The output of the Tx module will be checked based on a baud rate of 9600 for the specified strings in hexadecimal format.</p> 
+
+	    <p>The reading of the command should be through the Rx module. The upper and lower case versions should be accepted, and wrong commands not result in any output.</p> 
+
+	    <p>Source code for the Command Processor that demonstrates the above behaviour in a simulation with the provided testbench should be uploaded to Blackboard as part of the submission archive (along with the source for the Data Processor and the report).</p> 
+
+	    <h3 id="interim_data">Data Processor</h3> 
+
+	    <p>The Data Processor unit should demonstrate full functional compliance in a simulation (i.e. that any given number of words according to the specification can be processed, and the peak detected). The following will be checked:</p>
+	    
+	    <ul>
+	      <li>Correct retrieval of all seven bytes, including positioning with the peak in the middle;</li>
+	      <li>The value of the peak index.</li>
+	    </ul>
+
+	    <p>Source code for the Data Processor that demonstrates this behaviour in a simulation with the provided testbench should be uploaded to Blackboard as part of the submission archive (along with the source for the Command Processor and the report).</p>
+
+	    <h3 id="interim_report">Report</h3>
+	    
+	    <p>You have to produce a single report for each group with five sections:</p>
+	    <ul>
+	      <li>Description of the group composition and task division between group members (who does what).</li>
+	      <li>Description of the project plan, including a diagrammatic work plan such as a Gantt chart that shows the timelines for tasks, deliverables and milestones, as well as group meetings.</li>
+	      <li>Description of the architecture of the Data Processing module including a block-level sketch of the main logic components and a state diagram for the FSM.</li>
+	      <li>Description of the architecture of the Command Processing module including a block-level sketch of the main logic components and a state diagram for the FSM.</li>
+		  <li>Report the integration and system evaluation.</li>
+
+	    </ul>
+
+	    <p>In summary, a professional report should be produced that describes your project plan and also clearly shows the architectures of your command and data processors with appropriate diagrams and descriptions. Even though different members of the group may contribute different parts of the report, it should read as a cohesive whole, and have consistent formatting and numbering of sections, figures and tables.</p>
+
+	    <h2 id="final">Deadline and Marking</h2>
+	    
+	    <p>On 16 April 2026, Week 22,  a code archive with the source files for the Data and Command Processors and your group report should be submitted via Blackboard. If your source is written over more than two files, all such files should be included in your submission archive. You should NOT modify any of the supplied sources (i.e. "test_top.vhd", "common_pack.vhd", "dataGen.vhd", "UART_RX_CTRL.vhd" "UART_TX_CTRL.vhd"). What you submit will be compiled with the above sources and tested on the board. A manual scrutiny of the code will also be carried out. Please note that the report is necessary, and the following aspects are checked in evaluating your design:</p>
+	    <ul>
+	      <li>Adherence to specifications when implemented on the board.</li>
+	      <li>Design excellence of the Command Processor.</li>
+	      <li>Design excellence of the Data Processor.</li>
+	    </ul>
+
+	    
+      <table class="arrows">
+	<tr>
+	  <td><a href="A2_index.html"><img src="pics/l_d_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_group.html"><img src="pics/l_arw.png"></a></td>
+	  <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	  <td><a href="A2_design_approach.html"><img src="pics/r_arw.png"></a></td>
+	</tr>
+      </table>
+
+
+  </body>
+
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/A2_deliverables.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:49 GMT -->
+</html>

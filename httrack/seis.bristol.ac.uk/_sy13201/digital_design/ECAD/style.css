@@ -1,0 +1,571 @@
+html {
+	background:white;
+	overflow:auto;
+  }
+
+  body {
+    margin: 100px 150px 100px 80px;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    counter-reset: h1Counter h2Counter h3Counter figCounter taskCounter h1IndexCounter h2IndexCounter taskIndexCounter tableCounter exIndexCounter;
+}
+
+a:link {
+    color: blue;
+}
+
+a:visited {
+    color: purple;
+}
+
+a:hover {
+    color: green;
+}
+
+.arrows {
+    box-align: center;
+    margin: 10px auto;
+    border-collapse: collapse;
+}
+
+.arrows td {
+    border-right: solid 1px #0000FF; 
+    border-left: solid 1px #0000FF;
+}
+
+h1 {
+    counter-reset: h2Counter;
+    font: 22pt 'Trebuchet MS', Verdana, Arial, sans-serif;
+    font-weight: 700;
+}
+  
+ h1::before {
+	  counter-increment: h1Counter;
+  content: counter(h1Counter) ".0\0000a0\0000a0";
+  }
+
+
+  h2 {
+  counter-reset: h3Counter;
+  font:18pt 'Trebuchet MS', verdana, arial;
+  font-weight: 700;
+  font-style:italic;
+  /*text-decoration:underline;*/
+  /*color:#2E2EFE;*/
+  /*color:#008080;*/
+  /*text-align:center*/
+  }
+
+  h2::before {
+	  counter-increment: h2Counter;
+  content: counter(h1Counter) " ." counter(h2Counter) "\0000a0\0000a0" ;
+  }
+
+  h3 {
+  counter-reset: h4Counter;
+  font:16pt 'Trebuchet MS', verdana, arial;
+  font-weight: 700;
+  text-decoration:underline;
+  /*color:#2E2EFE;*/
+  /*color:#008080;*/
+  /*text-align:center*/
+  } 
+
+  h3::before {
+	  counter-increment: h3Counter;
+  content: counter(h1Counter) "." counter(h2Counter) "." counter(h3Counter) "\0000a0\0000a0" ;
+  }
+
+ h4 {
+  font:14pt 'Trebuchet MS', verdana, arial;
+  font-style:italic;
+  text-decoration:underline;
+  /*color:#2E2EFE;*/
+  /*color:#008080;*/
+  /*text-align:center*/
+  } 
+ 
+
+  h4::before {
+	  counter-increment: h4Counter;
+  content: counter(h1Counter) "." counter(h2Counter) "." counter(h3Counter) "." counter(h4Counter) "\0000a0\0000a0" ;
+  }
+
+
+ h5 {
+ font:12pt 'Trebuchet MS', verdana, arial;
+ font-weight:600;
+ text-decoration:underline;
+ } 
+ 
+ p {
+   font-size: 18px;
+ }
+
+  .h1Index {
+  counter-reset: h2IndexCounter;
+  font:14pt 'Trebuchet MS', verdana, arial;
+  font-weight: 300;
+  /*text-decoration:underline;*/
+  /*color:#2E2EFE;*/
+  /*color:#008080;*/
+  /*text-align:center*/
+  }
+
+  .h1Index::before {
+	  counter-increment: h1IndexCounter;
+  content: counter(h1IndexCounter) ".0\0000a0\0000a0";
+  }
+
+  ul .h1Index {
+  list-style-type:none;
+  }
+
+  .h2Index {
+  counter-reset: h3IndexCounter;
+  font:14pt 'Trebuchet MS', verdana, arial;
+  font-weight: 300;
+  margin-left: 10px;
+  }
+
+
+  .h2Index::before {
+  counter-increment: h2IndexCounter;
+  content: counter(h1IndexCounter) "." counter(h2IndexCounter) "\0000a0\0000a0" ;
+  }
+
+  ul .h2Index {
+  list-style-type:none;
+  margin-left:none;
+  }
+
+  ul .h2Index > li{
+  margin-left:0;
+  }
+
+  .h3Index {
+  counter-reset: h4IndexCounter;
+  font:14pt 'Trebuchet MS', verdana, arial;
+  font-weight: 300;
+  margin-left: 20px;
+  }
+ .h3Index::before {
+  counter-increment: h3IndexCounter;
+  content: counter(h1IndexCounter) "." counter(h2IndexCounter) "." counter(h3IndexCounter) "\0000a0\0000a0" ;
+  }
+
+
+  ul .h3Index {
+  list-style-type:none;
+  }
+
+  .h4Index {
+  font:11pt 'Trebuchet MS', verdana, arial;
+  font-weight: 300;
+  margin-left: 30px;
+  }
+
+  .h4Index::before {
+  counter-increment: h4IndexCounter;
+  content: counter(h1IndexCounter) "." counter(h2IndexCounter) "." counter(h3IndexCounter)  "." counter(h4IndexCounter,upper-latin) "\0000a0\0000a0" ;
+  }
+
+  ul .h4Index {
+  list-style-type:none;
+  }
+
+
+  .noIndent {
+  padding-left:0;
+  margin-left:0;
+  }
+  
+
+
+ .taskIndex {
+  font:14pt 'Trebuchet MS', verdana, arial;
+  font-weight: 300;
+  font-style:italic;
+  margin-left: 15px;
+  counter-increment: taskIndexCounter;
+  background-color:#FFF0F0;
+		 
+  }
+
+  .taskIndex::before {
+  content: "Task " counter(h1IndexCounter) "." counter(h2IndexCounter)"-" counter(taskIndexCounter,upper-latin)":\0000a0\0000a0" ;
+  } 
+
+  ul .taskIndex {
+  list-style-type:none;
+  }
+
+ 
+ .exIndex {
+  font:14pt 'Trebuchet MS', verdana, arial;
+  font-weight: 300;
+  font-style:italic;
+  margin-left: 15px;
+  counter-increment: exIndexCounter;
+  background-color:#F0FFFF;			 
+  }
+
+  .exIndex::before {
+  content: "Exercise " counter(h1IndexCounter) "." counter(h2IndexCounter)"-" counter(exIndexCounter,upper-latin)":\0000a0\0000a0" ;
+  } 
+
+  ul .exIndex {
+  list-style-type:none;
+  }
+
+ 
+  .note {
+font:14pt 'Trebuchet MS', verdana, arial;
+font-weight: 600;
+/*text-decoration:underline;*/
+/*color:#FDD017;*/
+background-color:#FFFFE0;
+margin-top: 4px;
+margin-bottom: 4px;
+padding: 8px;
+border-style: solid;
+border-width: 1px;
+  }
+
+  .note::before {
+  content:"Note:"
+  }
+
+  
+  li {
+  font:12pt 'Trebuchet MS', verdana, arial;
+  /*font-weight: 900;*/
+  /*text-decoration:underline;*/
+  /*color:#8A0808;*/
+  /*color:#0B0B61;*/
+  /*color:#FDD017;
+  color:#151B8D;*/
+  /*margin-top:100px;*/
+  }
+
+/*-------------------------------*/
+  div.note > ul > li {
+  list-style-type: disc;
+  font:14pt 'Trebuchet MS', verdana, arial;
+  font-weight: 300;
+  /*margin:10px;*/
+  line-height:1.2
+  }
+
+  ol {
+  counter-reset: itemCounter;
+  display: table;
+  padding:5px;
+
+  }
+
+  ol.taskItem > li{
+  /*list-style-type: disc;*/
+  list-style-position: outside;
+  font:14pt 'Trebuchet MS', verdana, arial;
+  font-weight: 300;
+  margin-left:1em;
+  /*text-indent: 10em;*/
+  /*display: block;
+  border-collapse: separate;*/
+  line-height:1.2
+  /*margin-top:1em;*/
+  /*border-bottom: 30px solid transparent;*/
+  }
+
+  ol.exItem > li{
+  /*list-style-type: disc;*/
+  list-style-position: outside;
+  font:14pt 'Trebuchet MS', verdana, arial;
+  font-weight: 300;
+  margin-left:1em;
+  /*text-indent: 10em;*/
+  /*display: block;
+  border-collapse: separate;*/
+  line-height:1.2
+  /*margin-top:1em;*/
+  /*border-bottom: 30px solid transparent;*/
+  }
+
+
+/*      ol > li {
+  display: table-row;
+   margin:100px;
+  }
+
+*/
+
+/*    ol > li:before {
+  content: counters(itemCounter, ".") ".\0000a0";
+  counter-increment: itemCounter;
+  display: table-cell;
+  margin-top:100 px;
+  };
+
+*/    
+  /*ul li:before {content:"\2022  ";}*/
+  /*ul li {list-style-type: disc}*/
+
+
+  ol.q_top li{
+font:14pt 'Trebuchet MS', verdana, arial;
+font-weight: 600;
+/*text-decoration:underline;*/
+/*color:#8A0808;*/
+/*color:#0B0B61;*/
+/*color:#FDD017;*/
+color:#151B8D;
+  }
+
+
+  .question {
+font:14pt 'Trebuchet MS', verdana, arial;
+font-weight: 900;
+/*text-decoration:underline;*/
+/*color:#8A0808;*/
+/*color:#0B0B61;*/
+/*color:#FDD017;*/
+color:#151B8D;
+  }
+
+  ol.question_sub li{
+margin-top:12px;
+font:14pt 'Trebuchet MS', verdana, arial;
+font-weight: 700;
+color:#151B8D;
+  }
+
+   ul.question_sub li{
+margin-top:12px;
+font:14pt 'Trebuchet MS', verdana, arial;
+font-weight: 700;
+color:#151B8D;
+  }
+
+ .answer {
+font:14pt 'Trebuchet MS', verdana, arial;
+font-weight: 600;
+/*text-decoration:underline;*/
+color:#8A0808;
+/*color:#0B0B61;*/
+/*color:#FDD017;*/
+/*color:black*/
+  }
+
+  .emph1 {
+font-style: italic;
+font-weight: bold;
+  }
+
+  .emph2 {
+  font-weight:bold;
+  
+  }
+
+  a.emph2:hover {
+  color: red;
+  }
+
+  .emph3 {
+  font-weight:bold;
+  font-style:italic;
+  }
+
+
+  .unix {
+ font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+ font-size: 14px;
+ color:#17BB1C;
+ /*990099;*/
+ /*font-weight: bold;*/
+ 
+  } 
+
+  .unixEmph {
+  font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+  font-size: 14px;
+  color:#990099;
+  font-weight: bold;
+  
+  } 
+
+
+  /*
+  .code {
+ font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+ font-size: 15px;
+ /*font-weight: bold;
+ 
+  } */
+  
+  .ref {
+  font-family:  times;
+  font-size:14pt;
+  counter-increment: refCounter;
+  }
+
+ .ref::before {
+  content: '[' counter(refCounter) ']. ';
+
+ }
+
+ .refDesc {
+  font-family: times;
+  font-size:10pt;
+  font-style:italic;
+  margin-left:0px;
+  margin-top:0px;
+  }
+
+  figure.numFig {
+  font-family:  times;
+  font-size:14pt;
+  font-weight:bold ;
+  margin:30px;
+  counter-increment: figCounter;
+  }
+  figure.numFig figcaption { 
+  /*counter-increment: figCounter; */
+  text-align:left;
+  margin-top:10px
+  }
+  figure.numFig figcaption::before { 
+  content: 'Fig. ' counter(h1Counter) '.' counter(figCounter) ' - '; 
+  }
+
+  .task {
+  font:12pt 'Trebuchet MS', verdana, arial;
+  font-weight: 700;
+  font-style:italic;
+  counter-increment: taskCounter;
+		 
+  }
+
+  .task::before {
+  content: "Task " counter(h1Counter) "." counter(h2Counter)"-" counter(taskCounter,upper-latin)":\0000a0\0000a0" ;
+  }
+
+  .ex {
+  font:12pt 'Trebuchet MS', verdana, arial;
+  font-weight: 700;
+  font-style:italic;
+  counter-increment: exCounter;
+  }
+
+  .ex::before {
+  content: "Exercise " counter(h1Counter) "." counter(h2Counter)"-" counter(exCounter,upper-latin)":\0000a0\0000a0" ;
+  }
+
+  .exBox {
+  background-color:#F0FFFF;
+  margin-top: 4px;
+  margin-bottom: 0;
+  padding: 8px; padding-bottom: 0px;
+  border-style: solid;
+  border-width: 1px;
+		 
+  }
+
+  .taskBox {
+  /*background-color:#C3FDB8;/
+  background-color:#FEFCFF;
+  background-color:#f5fef4;*/
+  background-color:#FFF0F0;
+  margin-top: 4px;
+  margin-bottom: 0;
+  padding: 8px; padding-bottom: 0px;
+  border-style: solid;
+  border-width: 1px;
+		 
+  }
+
+
+  table.table_class {
+  empty-cells: show;
+  border: 1px solid #000;
+  border-collapse:collapse;
+  }
+
+  table.table_class td,
+  table.table_class th {
+  min-width: 2em;
+  min-height: 2em;
+  border: 1px solid #000;
+  padding-left:10px;
+  padding-right:10px;
+  padding-top:5px;
+  padding-bottom:5px;
+  }
+
+  table.table_class caption {
+  counter-increment: tableCounter; 
+  text-align:center;
+  font:11pt times;
+  font-weight:bold ;
+  }
+
+  table.table_class caption:before { 
+  content: 'Table ' counter(h1Counter) '.' counter(tableCounter) ' - '; 
+  }
+
+  .term {
+  color:red
+  }
+
+  .emphList {
+font:10pt 'Trebuchet MS', verdana, arial;
+/*font-weight: 300;*/
+/*text-decoration:underline;*/
+/*color:#FDD017;*/
+background-color:#FFFFE0;
+margin-top: 4px;
+margin-bottom: 4px;
+padding: 8px;
+border-style: solid;
+border-width: 1px;
+  }
+
+  div.emphList > ul > li {
+  list-style-type: disc;
+  line-height:1.4;
+  }
+
+
+  div.emphBox > ol > li > ul > li {
+  list-style-type: disc;
+  line-height:1.4;
+		margin-bottom:8px;
+  }
+
+
+ div.emphBox > ol > li {
+  line-height:1.4;
+  margin-left:4px;
+  margin-bottom:10px;
+  }
+
+
+  .emphBox {
+margin-top: 4px;
+margin-bottom: 4px;
+padding: 8px;
+border-style: solid;
+border-width: 1px;
+  }
+
+  .sectionHead {
+  font:30pt 'Trebuchet MS', verdana, arial;
+  font-weight: 700;
+  }
+
+  .sectionHead2 {
+  font:20pt 'Trebuchet MS', verdana, arial;
+  font-weight: 300;
+  text-decoration:underline;	  
+  }

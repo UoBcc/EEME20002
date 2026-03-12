@@ -1,0 +1,598 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/sequential.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:48:03 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>Modelling Sequential Logic in VHDL</title>
+    <link href="style.css" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="highlight/styles/default.css">
+    <script src="highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+
+  <body style="counter-reset: h1Counter 4 h2Counter h3Counter figCounter taskCounter 3 h1IndexCounter 4 h2IndexCounter h3IndexCounter taskIndexCounter 3 tableCounter exCounter 3 exIndexCounter 3;">  
+
+    <table class="arrows">
+      <tr>
+	<td><a href="index.html"><img src="pics/l_d_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="behavioural.html"><img src="pics/l_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="synchronous.html"><img src="pics/r_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="A2_index.html"><img src="pics/r_d_arw.png"></a></td>
+      </tr>
+    </table>
+	  
+	  
+
+  <ul class="noIndent">
+    <li class="h1Index"><a href="#sequential">Modelling Sequential Logic in VHDL</a></li>
+    <ul class="noIndent">
+      <li class="h2Index"><a href="#seqLogic">Sequential Logic Elements</a></li>
+       <ul class="noIndent">
+	 <li class="h3Index"><a href="#latch_vs_ff">Latches versus Flip-Flops</a></li>
+	 <li class="h3Index"><a href="#dlatch_struct">Modelling a D-Latch Using a Gate-Level Structural Style</a></li>
+       </ul>
+      <li class="taskIndex"><a href="#task_dlatchGate_sim">Simulating a D-latch Implemented in a Gate-Level Style</a></li>
+      <ul class="noIndent">
+	<li class="h3Index"><a href="#dlatch_behav">Modelling a D-latch Using a Behavioural Style</a></li>
+      </ul>
+      <li class="taskIndex"><a href="#task_dlatchBehav_sim">Simulate a D-latch Implemented in Behavioural Style</a></li>
+      <li class="exIndex"><a href="#ex_dlatch">Latch Implementation</a></li>
+      <ul class="noIndent">
+	<li class="h3Index"><a href="#flip-flop">Modelling a Flip-Flop</a></li>
+	<li class="h3Index"><a href="#ff_clockEnable">Modelling a Flip-Flop with Clock-Enable</a></li>
+      </ul>
+      <li class="taskIndex"><a href="#task_ff_vs_latch_sim">Compare the Behaviour of Flip-flops and Latches</a></li>
+    </ul>
+    <li class="h2Index"><a href="#fsm">Finite-State Machines (FSM)</a></li>
+      <ul class="noIndent">
+	<li class="h3Index"><a href="#state_trans_diag">State Transition Diagrams</a></li>	
+	<li class="h3Index"><a href="#pattern_recog1">Implementing Pattern Recogniser 1</a></li>
+      </ul>
+    <li class="exIndex"><a href="#ex_pattern_recog_stateM">Constructing the State Machines</a></li>
+    <li class="taskIndex"><a href="#task_pattern_recog_stateM">Modelling the FSMs in VHDL</a></li>
+    <li class="exIndex"><a href="#ex_FSM_behaviour">Submit Mealy and Moore Implementations</a></li>
+    <li class="h2Index"><a href="#summary">Summary</a></li>
+  </ul>
+
+
+    <h1 id="sequential">Modelling Sequential Logic in VHDL</h1>
+
+	  <p>The learning objectives for this section are:
+	    <ul>
+	      <li>To understand how to model sequential logic gates;</li>
+	      <li>To understand the difference between edge-triggered and level-sensitive elements;
+	      <li>To become familiar with modelling of finite-state machines.</li>
+	    </ul>
+	  </p>
+
+  <h2 id="seqLogic">Sequential Logic Elements</h2>
+	  <p>Digital logic gates can be classified into two types, <a href="terms.html">combinational</a> and sequential. In combinational (stateless) elements, the output is always driven by the current value of the inputs. Examples are the INVERTER, NOR, and NAND gates you encountered earlier. Sequential elements are basically memory elements; they update the output upon some predefined condition on a <a class="emph1">control</a> signal being satisfied, and retain the value of the output at all other times, regardless of the value of the <a class="emph1">data</a> input. They are sometimes also called state elements as they store the "state" of the circuit at any given point in time.</p>
+
+	  <p>VHDL provides a rich variety of possibilities for implementing the functionality of a given memory
+element and inferring different types of logic gates by using a specific code template. We will start by
+looking at the fundamental memory elements used in sequential logic, the latch and the flip-flop. We
+will then model a finite-state machine (FSM) by designing a simple pattern recogniser in the next section.</p>
+	  
+  <h3 id="latch_vs_ff">Latches versus Flip-flops</h3>
+	  
+    <p>The basic difference between a latch and a flip-flop is that a latch is a level-sensitive device, whereas a flip-flop is an edge-triggered device. Hence the output of a latch will be completely transparent to its input as long as the control signal is high (in a positive latch, or low in a negative latch), whereas the output of a flip-flop will depend only on the value of the input upon the rising edge (in a rising-edge-triggered flip-flop, or falling edge in a falling-edge-triggered flip-flop) of the control signal. The symbols of each are given in Fig. 5.1.</p>
+
+    <figure class="numFig">
+      <img src="pics/latch_vs_ff.png" alt="Combinational circuit" style="width:600px;"/>
+      <figcaption>Latches and Flip-flops.</figcaption>
+    </figure>  	  
+
+  <h3 id="dlatch_struct">Modelling a D-Latch Using a Gate-Level Structural Style</h3>
+
+    <p>Shown in Fig. 5.2 is a D-latch built from a NOR-NOR implementation of an SR-Latch. As the timing diagram shows, this is a positive latch, where the input is copied to the output when the control signal (CLK) is high.</p>
+
+   <figure class="numFig">
+      <img src="pics/dlatch_gate.png" alt="Combinational circuit" style="width:600px;"/>
+      <figcaption>D latch implemented from a NOR-NOR SR Latch.</figcaption>
+    </figure>  	  
+
+    <div class="taskBox">  
+      <a class="task" id="task_dlatchGate_sim">Simulating a D-latch implemented in a Gate-Level Style</a>		  
+	<ul>
+	<ol class="taskItem">
+	
+	<li>Create a new project in Vivado and add the source files "SRLatch_nor.vhd", "DLatch.vhd" and "tb_DLatch.vhd" to it.</li> 
+	<li>Given in "DLatch.vhd" is the VHDL implementation of the schematic of Fig. 5.2 using a mix of structural and dataflow styles in an architecture called <a class="unix">dataflow</a>. Observe how the SR-latch is
+defined as a component and used in the construction of the D-latch. Also open "SRLatch_nor.vhd" and study its implementation in the data-flow or gate-level style.
+	  <div class="note">
+	    <ul>
+	      <li>Note how in this example <a class="emph1">named</a> association of ports is used, as opposed to <a class="emph1">positional</a> association in the port map. Explicitly stating the port name helps avoid mistakes. Also with named association the order of ports need not be in any particular order. With positional association the port mapping needs to clearly be in the order in which the ports are defined in the component.</li>
+	    </ul>
+	  </div>
+	</li>
+	<li>Simulate the design. You will be asked to specify the top module name for your simulation (i.e., tbdLatch) . Add the <a class="unix">clk</a>, <a class="unix">d_in</a>, <a class="unix">q_gate</a> and <a class="unix">qPrim_gate</a> signals to the <a class="emph1">Wave</a> window. Verify the functionality of the device.
+
+	</li>
+
+      </ol>
+	</ul>
+	</div>
+	
+  <h3 id="dlatch_behav">Modelling a D-latch Using a Behavioural Style</h3>
+
+      <p>It is also possible to infer a latch much more simply using signal or variable assignment statements inside a process body.</p>
+
+  <h4 id="latch_vs_ff">Using Signals</h4>
+     
+      <p>An example of a level-sensitive latch using signal assignments is given below.</p>
+
+	  <pre>
+	    <code class="vhdl">
+	      ENTITY dLatch IS
+	        PORT (
+	          d:IN STD_ULOGIC;
+	          clk:IN STD_ULOGIC;
+	          q:OUT STD_ULOGIC;
+	          qPrim:OUT STD_ULOGIC);
+	      END dLatch;
+
+	      ------------------------------------------------------
+	      -- behavioural Implementation 1 ----------------------
+	      ------------------------------------------------------
+	      ARCHITECTURE behav1 of dLatch IS
+	      BEGIN
+  	        PROCESS(clk, d)
+  	        BEGIN
+   	          IF clk = '1' THEN
+	            q <= d;
+	            qPrim <= not d;
+	          END IF;
+	        END PROCESS;
+	      END behav1;
+	      ------------------------------------------------------
+	    </code>
+	  </pre>
+
+      <div class="emphBox">
+	<p><a class="emph2">Why does this code implement (infer) a latch?</a> The general inference rule is that a latch is synthesized when a signal or variable is not assigned in all branches of an <a class="unix">IF</a> or <a class="unix">CASE</a> statement. In the above code, we don't specify what happens if CLK is '0'. The VHDL semantics imply that the value of <a class="unix">q</a> when it is not explicitly assigned in every possible selection branch has to be saved from one simulation cycle to another (<a class="emph2">this is exactly why we took pains to ensure that the output was driven in every single selection branch when implementing combinational logic earlier</a>). </p>
+	<p>As the assignment is under the control of a level-sensitive condition (i.e., <a class="unix">IF CLK = '1' THEN</a>), a latch is inferred.</p>
+      </div>
+
+  <h4 id="latch_vs_ff">Using Variables</h4>
+    
+    <p>The following code uses a variable inside a process to infer a latch for the same entity.</p>
+      
+    	  <pre>
+	    <code class="vhdl">
+
+	      ------------------------------------------------------
+	      -- behavioural Implementation 2 ----------------------
+	      ------------------------------------------------------
+	      ARCHITECTURE behav2 of Dlatch IS
+	      BEGIN
+  	        PROCESS(clk, d)
+	          VARIABLE var_q : STD_ULOGIC;
+  	        BEGIN
+   	          IF clk = '1' THEN
+	            var_q <= d;
+	          END IF;
+		  q <= var_q;
+	        END PROCESS;
+	      END behav2;
+	      ------------------------------------------------------
+	    </code>
+	  </pre>
+
+      <p>Here the variable <a class="unix">var_q</a> is used as internal storage. The two latch implementations above, with and without a variable, result in identical logic. Even though variables and signals are fundamentally
+different in that signal assignments always incur a delay, whereas variable assignments do not, the value of the variable is assigned to a signal at the end of the process, which has a delta delay. In this case, use of a variable has simply resulted in more verbose code.</p>
+
+      <div class="note">
+	<ul>
+	  <li>Variables can be synthesised, and there is nothing wrong with using variables in logic descriptions,
+<a class="emph2">provided you follow all the hardware inference rules specified in this assignment</a>. As inexprienced VHDL programmers often use variables in a software sense, and up with hopelessly unsynthesisable code, it is recommended that you avoid variables when you describe logic, at least at the beginning.</li>
+	  <li>Variables are certainly useful in testbenches and can be used freely, as synthesis is not a concern.</li>
+	</ul>
+      </div>
+
+
+      <div class="taskBox">  
+	<a class="task" id="task_dlatchBehav_sim">Simulate D-latch Implemented in Behavioural Style</a>		  
+	<ul>
+	<ol class="taskItem">
+	  <li>In the same file as earlier, "dLatch.vhd" the above implementations with and without variables are also included. Now add the signals <a class="unix">q_behav1</a>, <a class="unix">qPrim_behav1</a>, <a class="unix">q_behav2</a>, <a class="unix">qPrim_behav2</a> to the <a class="emph2">Wave</a> window, run the simulation and verify that all three latches behave identically.</li>
+	  <li>Note how the initial values of the output signals are shown as <a class="unix">'U'</a>. Enumerated data types initialise to the left-most value. In the case of <a class="unix">STD_ULOGIC</a> this value is <a class="unix">'U'</a>, i.e., 'Unitialised'. Until the latch gating signal <a class="unix">'clk'</a> goes high, the output values are uninitialised. 
+	</ol>
+</ul>
+      </div>
+
+      <div class="exBox">  
+	<a class="ex" id="ex_dlatch">Latch Implementation</a>		  
+	<ul>
+	<ol class="exItem">
+	  <li>This is a positive latch that should not propagate any changes in <a class="unix">d</a> to the output when <a class="unix">clk</a> is low. Given this, explain whether the D input should be in the sensitivity list or not, or if it makes no difference. <a class="answer">Answer Quiz 1, Question 6</a>.</li>
+	  <li>Why is it that only the gate-level structural implementation has a glitch at 35 ns? Can glitches in hardware be eliminated completely by using behavioural code instead of structural gate-level implementations? <a class="answer">Answer Quiz 1, Question 7</a>.</a> 
+	</ol>
+	</ul>
+      </div>
+
+    <h3 id="flip-flop">Modelling a Flip-Flop</h3>
+      
+      <p>A flip-flop can be inferred by an assignment within a process by using an <a class="emph1">edge-sensitive condition</a>. For example, the following expression synthesises a flip-flop with an asynchronous low reset:</p>
+
+        <pre>
+          <code class="vhdl">
+	    ENTITY ff IS
+	      PORT (
+	        d:IN STD_ULOGIC;
+	        clk:IN STD_ULOGIC;
+	        reset:in STD_ULOGIC;
+	        q:OUT STD_ULOGIC;
+	        qPrim:OUT STD_ULOGIC
+	      );
+	    END ff;
+	    
+	    ------------------------------------------------------
+	    -- behavioural Implementation ------------------------
+	    ------------------------------------------------------
+	    ARCHITECTURE behav of ff IS
+	    BEGIN
+	      PROCESS(clk, reset)
+	      BEGIN
+	        IF reset = '0' THEN
+	          q <= '0';
+	          qPrim <= '1';
+	      	ELSIF clk'EVENT AND clk='1' THEN
+	          q <= d;
+	          qPrim <= not d;
+	     	END IF;
+	      END PROCESS;
+	    END behav;
+	    ------------------------------------------------------
+          </code>
+        </pre>
+      
+    <div class="emphBox">
+      <p>The <a class="unix">'</a> sign, read as tick, specifies some attribute of an object. In this case, <a class="unix">clk'EVENT</a> is true when <a class="unix">clk</a> undergoes a transition from <a class="unix">'0'</a> to <a class="unix">'1'</a> or <a class="unix">'1'</a> to <a class="unix">'0'</a>. The condition <a class="unix">clk'EVENT AND CLK='1'</a> is therefore true for a rising edge of <a class="unix">clk</a>.
+	<div class="note">
+	  <ul>
+	    <li>The macro <a class="unix">RISING_EDGE(clk)<a> may be used instead of the line <a class="unix">clk'EVENT AND CLK='1'</a>. This macro works for synthesis and the two statements are equivalent.</li>
+	    <li>It is also possible to use falling-edge-triggered flip-flops, but you should consistently stick to one or the other, and not use both types of flip-flops in one design. For falling-edge-triggered flip-flops, the control condition would be <a class="unix">clk'EVENT AND CLK='0'</a> or equivalently, <a class="unix">FALLING_EDGE(clk)<a>.
+	 </ul>
+	</div>      
+
+</p>
+
+      <p>Note the differences from the implementation of the latch. The first is that there is an asynchronous
+reset function. Regardless of the value of <a class="unix">clk</a>, if reset is low, the output goes to <a class="unix">'0'</a>. The second difference is that we have specified a rising edge of the control signal in the synchronous conditional statement, and omitted to put the data input <a class="unix">d</a> in the sensitivity list. Outside of the reset, we are only assigning to the output upon a rising edge of <a class="unix">clk</a>, and therefore we don't need to trigger the process upon any events occurring on <a class="unix">d</a>. For edge-triggered logic components only the control signal and any asynchronous reset needs to be present in the sensitivity list.</p>
+
+      <p><a class="emph2">For the edge condition, only ever use the edge of the clock, never some arbitrary signal</a>. Otherwise, the crictial paths in logic blocks cannot be properly identified and managed. If the critical paths cannot be identified, various logic hazards occur, and the circuit can malfunction or behave differently at different times for different inputs.</p>
+
+      <p><a class="emph2">You should design all sequential blocks using flip-flops only, and avoid latches at all costs</a>. In other words, if you specify memory, always assign the value based on the clock edge, rather than the level of some arbitrary signal.</p>
+
+      <p>Why avoid latches? The short answer is they complicate timing, and cause logic hazards, as there is a timing window when the latches are transparent, and signals can propagate through multiple stages and potentially corrupt valid signals before they can be read. Flip-flops on the other hand update the output upon a rising (or falling) edge and therefore signals cannot propagate through multiple stages. Let's examine this issue in the following task.</p>
+
+    </div>
+
+    <div class="taskBox"><a class="task" id="task_ff_vs_latch_sim">Compare the Behaviour of Flip-Flops and Latches</a>		  
+       <ul> <ol class="taskItem">
+	  <li>Create a new project and add the files in the folder task5.1F to the project. These files contain the previously described behavioural implementations for the latch and flip-flop.</li>
+	  <li>Compile all files, load the design and add all signals in the region to be watched. Simulate the design for at least 50 ns.</li>
+	  <li>As can be seen, whenever <a class="unix">clk</a> is high, the output of the latch faithfully reproduces the <a class="unix">d_in</a> waveform. The flip-flop, on the other hand, only updates the output on a rising edge of the clock. In a digital system the memory elements are updated once every clock cycle. The easiest way to ensure this is to use edge-triggered flip-flops rather than level-sensitive latches. This can be understood by looking at the output waveforms for both memory elements in the cycle occupying the time from 20 ns to 30 ns. The flip-flop reads the value present on the rising edge and retains that value regardless of any subsequent changes in the <a class="unix">d</a> input in the clock high phase, whereas the latch faithfully reproduces all changes in <a class="unix">d</a> input in the clock high phase. <a class="emph2">The behaviour we want, which allows us to design hazard-free logic, is the behaviour of the flip-flop</a>.</li> 
+	</ol>
+	</ul>
+      </div>
+
+    <h3 id="ff_clockEnable">Modelling a Flip-Flop with Clock-Enable</h3>
+    
+     <p>It is often useful to have a clock enable, so that you can disable a flip-flop. Consider the following implementation of a down counter:
+	    <pre>
+	      <code class="vhdl">
+		----some code for entity and architecture body
+		signal count: integer;
+		----some code
+		PROCESS(reset,clk)
+		BEGIN
+		  IF reset = '1' THEN -- active high reset
+		    count <= 0;
+		  ELSIF clk'EVENT and clk='1' THEN
+		    IF enCount = TRUE THEN -- enable
+		      count <= count - 1;
+		    END IF;
+		  END IF;
+		END PROCESS;
+	      </code>
+	    </pre>
+ 
+	    Note that the implication of a flip-flop with an asynchronous active high reset is clear. But what about the conditional statement inside the <a class="unix"> clk'EVENT AND clk='1'</a> condition? What value should be read if <a class="unix">enCount = false</a>? Having such an enable signal is <a class="emph1">also</a> part of the standard template to infer a flip-flop, because most flip-flops have a clock-enable signal. If this enable signal is asserted, the flip-flop behaves normally, else the clock input is simply ignored. The Xilinx FPGAs we will target have flip-flops that have such a clock enable, and hence this code will instantiate one of those elements.</p>
+
+<!--Generally you have to check what primitives the target technology library has and write your code accordingly. If the flip-flops in the target library do not have a clock-enable signal, the following simple modification ensures that when the enable signal is deasserted, the current inputs are fed back to the inputs. This implies a multiplexer which selects the input to the flip-flop as either the output through a feedback path or the data input.
+
+	    <pre>
+	      <code class="vhdl">
+		PROCESS(reset,clk)
+		BEGIN
+		  IF reset = '1' THEN
+		    outCount <= TO_SIGNED(0,8);
+		    ...............
+		  ELSIF clk'EVENT and clk='1' THEN
+		    IF enCount = TRUE THEN
+		      outCount <= outCount - 1;
+		    ELSE -- enCount = FALSE	       
+		      outCount <= outCount;	       
+		    END IF;
+		  END IF;
+		END PROCESS;
+	      </code>
+	    </pre> 
+-->
+   
+    <div class="emphBox">
+      <p><a class="emph2">What you should avoid at all costs is implementing a clock-enable by gating the clock</a>. A common error is shown below.</a>
+      <pre>
+	<code class="vhdl">
+	  --------
+	  myClk <= myClk_enable AND clk;
+	  -------
+      </code>
+    </pre> 
+
+   While the idea behind this is reasonable, gating the clock in this way causes issues because the clock needs to have very well-defined upper and lower bounds on skew and jitter. Hence it is routed using some sort of balanced tree with various feedback paths. If you gate the clock, the output downstream of the gating structure is the output of an ordinary logic gate, which can affect timing across the chip. Generally, synthesis tools will produce a warning if it detects clock gating.</p>
+    </div>
+
+    <h2 id="fsm">Finite-State Machines (FSM)</h2>
+
+      <p>FSMs are an important class of sequential circuits, which are widely used in control functions. They describe a series of states in which the circuit can reside, and prescribe under what conditions the circuit can advance from one state to another. Depending on what state the FSM is in, certain signals are taken high or low, which serve as the control inputs that drive other parts of the system, such as enabling or disabling a combinational element. The FSM provides the "intelligence" to a system while the datapath carries out the computational work on data. We will start by looking at a simple example to understand FSMs in this section, and look at a more complete example in Section XX.</p>
+      
+      <p>There are two widely used models for FSMs, the Mealy model and the Moore model. Block diagrams of both models are shown in Fig. 5.3.</p> 
+
+    <figure class="numFig">
+      <img src="pics/FSM_models.png" alt="Combinational circuit" style="width:600px;"/>
+      <figcaption>Models of Finite-State Machines</figcaption>
+    </figure>  	  
+
+
+      <p>Note how an FSM has both combinational and sequential logic. The registers are the state elements, i.e., they define states in binary form, by the bit pattern made up of the values at the outputs (Q) of the registers. The more complex the state machine and the greater the number of states required, the greater the number of registers required. The combinational logic blocks define the next state based on the current state and any inputs, and present the next state values on the inputs of the registers so they can update on the next clock edge. The difference between Mealy and Moore Machines is that in a Mealy machine the outputs are a function of the current state and the inputs, while in a Moore machine the outputs are a function solely of the current state.</p>
+
+      <div class="note">
+	<ul>
+	  <li>An FSM defines states in which a digital circuit can reside, by means of the bit pattern made up
+of the outputs of the state elements.</li>
+	  <li>The FSM advances from the current state to the next on every clock edge.</li>
+	  <li>In every cycle, combinational logic determines the next state based on the current state and the
+inputs, and presents it on the state element (register) inputs.</li>
+	  <li>A Mealy machine's output is a function of the present state & input.</li>
+	  <li>A Moore machine's output is a function of the present state only.</li>
+	</ul>
+      </div>
+
+    <h3 id="state_trans_diag">State Transition Diagrams</h3>
+    
+      <p>A state transition diagram is a diagram-based method to define FSMs by showing the states in which they can reside, and the conditions upon which they advance to the next state. Examples of both types of state transition diagrams are shown in Fig. 5.4 where X and Y represent inputs and outputs respectively.</p> 
+
+      <figure class="numFig">
+        <img src="pics/state_transition.png" alt="State transition diagrams" style="width:600px;"/>
+        <figcaption>State Transition Diagrams</figcaption>
+      </figure>  	  
+   
+      <p>State transition diagrams are useful in conceptualising a design, and straightforward to do for small designs.</p>
+
+      <div class="note">
+	<ul>
+	  <li>For both Mealy and Moore machines, nodes of the state diagram indicate states; arrows indicate transitions between states for a given input.</li>
+	  <li>For a Mealy machine, the output is shown on a state-transition edge, whereas for a Moore
+machine, the output is associated with the state.</li>
+	</ul>
+      </div>  
+
+    <h3 id="pattern_recog1">Implementing Pattern Recogniser 1</h3>
+     
+      <p>As a first example, we will implement a simple pattern recogniser using both Mealy and Moore FSMs. The pattern recogniser has a 1-bit input, <a class="unix">'x'</a>, with new data being available at each clock edge, a 1-bit output <a class="unix">'y'</a>, and an asynchronous reset which is active low. The output <a class="unix">'y'</a> should go high when an input sequence of <a class="unix">'1010'</a> is detected at the output, and remains low otherwise. Once a complete sequence has been recognised, any bits that have been read are to be disregarded for the next sequence. This means that the final two bits <a class="unix">'10'</a> of the first sequence cannot count as the first two bits in a new sequence. As an example, the pattern <a class="unix">'10101000'</a> will result in <a class="unix">'y'</a> going high only once, after the first four bits.</p>
+    
+  
+    <div class="exBox"><a class="ex" id="ex_pattern_recog_stateM">Constructing the State Machines</a>		  
+    <ul>
+		<ol class="exItem">
+			In the drawing, the reset signal can be omited as the reset signals will trigger the transaction from the current state to the initial state. 
+	  <li>Draw the state transition diagram for a Mealy FSM that satisfies the above specifications.
+<a class="answer">Answer Quiz 1, Question 8</a>.</li>
+	  <li>Draw the state transition diagram for a Moore FSM that satisfies the above specifications.
+<a class="answer">Answer Quiz 1, Question 9</a>.</li>
+	</ol>
+</ul>
+    </div>
+
+    <p>Both Mealy and Moore machines can be implemented in VHDL with a straightforward mapping of the logic blocks in Fig. 5.3 to separate processes; i.e., each logic block is described in its own <a class="unix">PROCESS</a> body. The VHDL template of a Mealy machine is given below.</p>
+
+    	  <pre>
+	    <code class="vhdl">
+	      -- Mealy Machine (mealy.vhd)
+	      -- Asynchronous reset, active low
+	      ------------------------------------------------------
+	      
+	      LIBRARY IEEE;
+	      USE IEEE.STD_LOGIC_1164.ALL;
+	      
+	      ENTITY recog1 is
+	      PORT(
+	        x: IN STD_ULOGIC;
+	        clk: IN STD_ULOGIC;
+	        reset: IN STD_ULOGIC;
+	        y: OUT STD_ULOGIC);
+	      END;
+	      
+	      ARCHITECTURE arch_mealy of recog1 is
+	        -- State declaration
+	        TYPE state_type is (INIT, FIRST ....);  -- List your states here 	
+	        SIGNAL curState, nextState: STATE_TYPE;
+	      BEGIN
+	        combi_nextState: process(curState, x)
+	        BEGIN
+	          CASE curState IS
+	            WHEN INIT =>
+	              IF x='1' THEN 
+	                nextState <= FIRST;
+	              ELSE
+	                ...... -- Fill in
+	                ......
+	              END IF;
+	              
+	            WHEN FIRST =>
+	              IF x='0' THEN
+	                nextState <= ? -- Fill in
+	              ELSE
+	                ............? -- Fill in
+	              END IF;
+	            WHEN ............ -- Fill in
+	              ..............
+	          END CASE;
+	        END PROCESS; -- combi_nextState
+	        -----------------------------------------------------
+		-----------------------------------------------------			
+	        combi_out: PROCESS(curState, x)
+	        BEGIN
+	          y <= '0'; -- assign default value
+	          IF curState = THIRD AND x='0' THEN
+	            y <= '1';
+	          END IF;
+	        END PROCESS; -- combi_out
+	        -----------------------------------------------------
+	        -----------------------------------------------------
+	        seq_state: PROCESS (clk, reset)
+	        BEGIN
+	          IF reset = '0' THEN
+	            curState <= INIT;
+	          ELSIF clk'event AND clk='1' THEN
+	            curState <= nextState;
+	          END IF;
+	        END PROCESS; -- seq
+	        -----------------------------------------------------
+	        -----------------------------------------------------
+	      END; -- arch_mealy
+
+	    </code>
+	  </pre>
+	    
+          <div class="emphBox">
+    	      <p>The architecture basically has four sections, a state declaration section, and three processes that implement the functionality. Note the correspondence between the logic blocks of Fig. 5.3 and the processes in the code. The combinational and sequential blocks are expressed as separate VHDL processes. <a class="emph2">Do NOT mix combinational and sequential logic structures within the same process.</a><p>
+
+	      <p>Consider the following example of badly-written code:</p>
+
+    	      <pre>
+		<code class="vhdl">
+		  bad_example : PROCESS(clk, rst)
+		  BEGIN
+		    IF rst = '1' THEN
+		      my_out <= '0';
+	            ELSIF clk'EVENT and clk='1' THEN
+	              CASE my_in IS
+		        WHEN '00' => my_out <= '1';
+		        when '01' => my_out <= '0';
+		        when '10' => my_out <= '0';
+		        when '11' => my_out <= '1';
+		      END CASE;
+                    END IF;
+                  END PROCESS; 
+	        </code>
+	      </pre>
+	      
+	      <p><a class="emph2">Why is this badly written?</a> It mixes combinational and sequential logic blocks. If you want the functionality of a selector that updates its output synchronously as above, the correct way to write it is to separate the combinational and sequential blocks and implement them in separate <a class="unix">PROCESS</a> bodies as shown below.</p> 
+
+    	      <pre>
+		<code class="vhdl">
+		  comb_sel : PROCESS(my_in) -- combinational process for the selector
+		  BEGIN
+	            CASE my_in IS
+		      WHEN '00' => my_out_d <= '1';
+		      when '01' => my_out_d <= '0';
+		      when '10' => my_out_d <= '0';
+		      when '11' => my_out_d <= '1';
+		    END CASE;
+                  END PROCESS; 
+
+		  seq_ff : PROCESS(clk, rst) -- sequential process for flip-flop
+		  BEGIN
+		    IF rst = '1' THEN
+		      my_out <= '0';
+	            ELSIF clk'EVENT and clk='1' THEN
+		      my_out <= my_out_d;
+                    END IF;
+                  END PROCESS;		
+	        </code>
+	      </pre>
+	      
+
+	      <p>Next, note that the states are defined as <a class="emph1">enumerated</a> types. Giving such descriptive names aids in debugging and improves readability. It also means the states can be mapped to binary values using a suitable scheme at a later stage, allowing you to concentrate on implementing the functionality first. You are free to use more descriptive state names than <a class="unix">"FIRST"</a>, <a class="unix">"SECOND"</a> etc, and indeed should. Naming something <a class="unix">"FIRST"</a> is not much more descriptive than assigning it a binary number.</p>
+
+	      <p>In a process body that implements a combinational logic block, outputs have to be defined for every <a class="unix">IF</a> or <a class="unix">CASE</a> branch, else latches will be inferred. <a class="emph2">Not adhering to this rule is a common cause of simulation and synthesis errors</a>. Keep in mind that when compiling code in ModelSim, such omissions will not merit a warning as it will be assumed that you do intend to infer latches (ModelSim is a verification tool, not a synthesis tool). In the Xilinx tool that you will use in the Assignment, such omissions will generate warnings, as latches are always discouraged. </p>
+
+	      <p>In process <a class="unix">combi_out</a>, the output <a class="unix">y</a> is given a default value of <a class="unix">'0'</a> (before the <a class="unix">IF</a> statement). Thus, it is not necessary to explicitly give a value of <a class="unix">y</a> in every <a class="unix">IF-ELSE</a> branch. An assignment statement will be used only when it needs a value other than <a class="unix">'0'</a>. Note how with this mechanism we ensure that the value of <a class="unix">y</a> is always defined, ensuring combinational logic, even though we don't explicitly enumerate all the conditional branches.</p>
+
+	      <p>It may be more succinct to implement both the next state logic and the output logic in the same process rather than two process bodies as given in the template, as quite often the conditions for the output changing may be grouped together with the conditions corresponding to a specific state change. While this may make for less verbose code, it makes it less readable. At the expense of a few extra lines you can write code that is not only more clear and can easily be picked up by somebody else, but also adheres to the principle of modularity. What this essentially means is each module does one thing only, but does that one thing efficiently. The general guideline you should follow is to only assign signals that relate to the same functionality in one process. If two signals by chance are assigned under the same input conditions but otherwise have nothing to do with each other, have separate processes. Separating signal assignments into separate processes or concurrent strutures depending on the overall functionality also helps in debugging.</p>
+
+	      <p>Please note that this code will not compile as shown, as it has dashes which have to be replaced
+with your code. Also the output may go high in some other state. It is only a template.</p>
+    	    </ul>
+          </div>
+  
+   <p></p>
+
+   <div class="taskBox"><a class="task" id="task_pattern_recog_stateM">Modelling the FSMs in VHDL</a>		  
+    <ul>    <ol class="taskItem">
+	  <li>The actual state assignments in the template above are blank. Please complete the code according to your state diagram, giving appropriate descriptive state names and use the supplied testbench "tb_pattern_recog.vhd"
+to verify the functionality of your design.
+	  </li>
+
+	  <li>Construct a VHDL implementation of your pattern recogniser based on the Moore model shown in
+Fig. 5.3.</li>
+
+	  <li>Add the Moore implementation as a component into your test bench, and compare the functionality
+against the Mealy implementation.</li>
+	</ol>
+	</ul>
+    </div>
+
+    <p></p>    
+ 	
+    <div class="exBox"><a class="ex" id="ex_FSM_behaviour">Submit Mealy and Moore Implementations</a>		  
+	<ul>   <ol class="exItem">
+	  <li>Upload the code for both Mealy and Moore implementations. <a class="answer">Answer Quiz 1, Question 10.</a></li>
+	  <li>List any observed functional or timing differences in the output of the two FSMs, and briefly explain the reason. <a class="answer">Answer Quiz 1, Question 11.</a></li>
+	  <li>How many states does the Moore machine have? <a class="answer">Answer Quiz 1, Question 12.</a></li>
+	  <li>The states that you have enumerated as init etc. have to be encoded as bit patterns in the implementation. Assume a sequential encoding scheme is used. Do you see any problems with undefined states? <a class="answer">Answer Quiz 1, Question 13.</a></li>
+	  <li>How can you modify your code such that it can jump back to the initial state in the event of an accidental descent to an undefined state? <a class="answer">Answer Quiz 1, Question 14.</a></li>
+	</ol>
+	</ul>
+	</div>
+
+    <h2 id="summary">Summary</h2>
+
+    <p>The following points were covered in this section. 
+      <ul>
+	<li>Sequential logic elements read in an input when a control condition is true and store the store this value when the control condition is not true, i.e., sequential logic elements are memory or storage elements. The control condition is either related to the control signal being high or low (i.e., level-sensitive) when the storage element is called a latch, or is related to a falling or rising edge of the control signal (i.e., edge-triggered) when the storage element is called a flip-flop.</li>  
+	<li>Structurally, latches are used to build flip-flops, but <a class="emph2">only flip-flops</a> should ever be used in digital systems as the inputs can propagate to the output only once in clock cycle with flip-flops, wheras latches allow outputs to change during an entire phase of the clock.</li>
+	<li>When modelling flip-flops only the clock (i.e., the control signal) and any asynchronous reset need be in the sensitivity list, as the output only updates on a clock edge (other than when being asynchronously reset).</ali>
+	<li>Finite-state machines (FSM) can be directly modelled in VHDL as either Mealy or Moore machines, with a direct correspondence between the hardware blocks of the FSM and <a class="unix">PROCESS</a> bodies in the implementation. It is good practice to use enumerated descriptive states that act as a reminder of the purpose of the state in which the machine resides, such as <a class="unix">'INIT'</a>, <a class="unix">'READ'</a>, <a class="unix">'UPDATE'</a> etc.  </li>
+
+	
+	
+      </ul>
+    </p> 
+
+    <table class="arrows">
+      <tr>
+	<td><a href="index.html"><img src="pics/l_d_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="behavioural.html"><img src="pics/l_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="synchronous.html"><img src="pics/r_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="A2_index.html"><img src="pics/r_d_arw.png"></a></td>
+      </tr>
+    </table>
+
+
+  </body>
+
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/sequential.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:48:07 GMT -->
+</html>

@@ -1,0 +1,492 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"D
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+  
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/timing.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:47:53 GMT -->
+<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
+<head>
+    <title>VHDL Timing Model</title>
+    <link href="style.css" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="highlight/styles/default.css">
+    <script src="highlight/highlight.pack.js"></script>
+    <script>hljs.initHighlightingOnLoad();</script>
+  </head>
+
+  <body style="counter-reset: h1Counter 2 h2Counter h3Counter figCounter taskCounter 1 h1IndexCounter 2 h2IndexCounter taskIndexCounter 1 tableCounter exCounter exIndexCounter;">  
+
+    <table class="arrows">
+      <tr>
+	<td><a href="index.html"><img src="pics/l_d_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="intro.html"><img src="pics/l_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="behavioural.html"><img src="pics/r_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="A2_index.html"><img src="pics/r_d_arw.png"></a></td>
+      </tr>
+    </table>
+	  
+
+  <ul class="noIndent">
+    <li class="h1Index"><a href="#timing">VHDL Timing Model</a></li>
+    <ul class="noIndent">
+      <li class="h2Index"><a href="#sig_assign">Signal Assignments and Associated Delay Types</a></li>
+      <li class="h2Index"><a href="#processes">Processes in VHDL</a></li>
+      <li class="h2Index"><a href="#mux_timing">Timing Analysis of a MUX</a></li>
+      <li class="exIndex"><a href="#ex_mux_imp">Gate-level implementation of MUX</a></li>
+      <li class="taskIndex"><a href="#task_mux_sim">Simulating the MUX</a></li>
+      <li class="exIndex"><a href="#ex_mux_glitch">Glitches in the MUX</a></li>
+      <li class="h2Index"><a href="#summary">Summary</a></li>
+    </ul>
+  </ul>
+
+
+    <h1 id="timing">VHDL Timing Model</h1>
+
+	  <p>The learning objectives for this section are:
+	    <ul>
+	      <li>to understand the concept of event-driven simulations;</li>
+	      <li>to become familar with the different delay types associated with signal assignments;</li>
+	      <li>to understand how delta delays ensure consistent simulation outcomes;</li> 
+	      <li>to understand how the similation cycle works in HDL simulators;</li>
+	      <li>to understand how glitches occur through a simple example.</a>
+	    </ul>
+	  </p>
+
+    <h2 id="sig_assign">Signal Assignments and Associated Delay Types</h2>
+	  <p>As explained in example <a href="intro.html">Task 2.4A</a> signal assignments are concurrent, and every signal assignment has a delay. This is a topic that needs to be thoroughly understood to do any sort of work in any HDL (VHDL or Verilog), and is the subject of this section.</p>
+	  
+	  <h3>Signal Assignment Triggers</h3>
+	  
+	  <p>Consider part of the NAND gate described in Task 2.4A, without the explicit delays:</p>
+
+	  <pre>
+	    <code class="vhdl">
+		q_prim <= a AND b;
+		q <= NOT q_prim;
+	    </code>
+	  </pre>
+
+	  <p>The signals to the <a class="emph1">right</a> of the assignment operator are the inputs. Thus for each assignment, the signals on the right-hand side are continuously monitored for any changes. A change in value of a signal is known as an <a class="emph1">event</a>. An event on the inputs in an assignment will lead to the output being evaluated; if the new value is different from the old value, depending on the type of assignment, the output signal <a class="emph1">may</a> be updated at some point in the future. Why do we say <a class="emph1">may</a> be updated, and not always updated? It depends on the type of signal assignment and the precise duration of pulses as seen in the next section.</p>
+
+	  <p>This monitoring of input signals takes place separately for each signa
+l assignment. Thus each signal assignment is <a class="emph1">concurrent</a>. If the signal being assigned is an input in <a class="emph1">another</a> assignment, i.e., it appears on the right-hand side of some other assignment, that line of code will in turn be evaluated. For example, if the value of <a class="unix">q_prim</a> changes, it will trigger the evaluation of the second statement where it is an input. This type of simulation, where value changes in signals trigger execution of assignment statements where those signal are inputs, is known as an event-driven simulation <sup><a href="refs.html">[7]</a></sup>. Changes in signals ripple through the code, similar to how boolean value changes at the output of logic gates will ripple through a physical circuit.</p>
+	  
+	  <div class="note">
+	      <ul>
+		<li>A signal value change is known as an event. An event is simply a transition from one value to another. This could be a '0'->'1' or '1'->'0' transition, but could also include transitions between other values that may be allowed, such as 'Z' (high impedance state) ->'1'.</li>
+		<li>In all single line signal assignments, the inputs are whatever signals appear on the right-hand side of the assignment operator, and an event on any input signal value triggers execution of the assignment. If the new output value is different from the old, depending on the type of assignment, a change may be scheduled for the output signal to take place some time in the future.</li>
+	      </ul>	  
+	  </div>
+
+	  
+	  <h3>Signal Assignment Delays</h3>
+
+	  <p>Consider the following code fragment:</p>
+
+	  <pre>
+	    <code class="vhdl">
+		q_prim <= a AND b AFTER 5 ns;
+	    </code>
+	  </pre>
+	  
+	  <p>Clearly this means that whenever an event occurs on <a class="unix">a</a> or <a class="unix">b</a>, <a class="unix">q_prim</a> is to be updated with the new value after a delay of 5 ns in simulator time. However, even if there was no explicit delay as, for example, in the following code fragment, <a class="emph1">a signal assignment still incurs a delay</a>.</p>
+	  <pre>
+	    <code class="vhdl">
+		q_prim <= a AND b;
+	    </code>
+	  </pre>
+
+	  <p>Thus any signal assignment in VHDL is actually a scheduling for a value to be placed on that signal, some time in the future. This scheduling of a future value is referred to as a signal transaction (an event occurs only if the new value is different from the old value). The rules governing that depends on how the signal assignment delay is specified. The delay can be one of three types:</p>
+
+	  <ul>
+	    <li>Transport  prescribes propagation delay only;</li> 
+	    <li>Inertial  prescribes propagation delay and minimum input pulse width;</li>
+	    <li>Delta  the default if no delay time is explicitly specified.</li>
+	  </ul>
+	  
+	  <h4>Transport Delay</h4>
+
+	  <p>Transport delay is the simplest, any change in an input signal value will cause the assignment to be evaluated, and a transaction will be scheduled on the output signal after the specified propagation delay. Consider the following fragment of code:</p>
+
+	  <pre>
+	    <code class="vhdl">
+		output <= TRANSPORT NOT input AFTER 10 ns;
+	    </code>
+	  </pre>
+
+	  <p>Here, output will be an inverted copy of input delayed by the 10 ns propagation delay (Fig. 3.1).</p>
+
+	  <figure class="numFig">
+	    <img src="pics/sig_assign_transport_delay.png" alt="Transport delay" style="width:600px;height:268px;"/>
+	    <figcaption>Signal assignment with transport delay (adapted from slide in Module 10 - VHDL Basics, Archives of the DARPA/Tri-Services RASSP Program output) <sup><a href="refs.html">[1]</a></sup>. </figcaption>
+	  </figure>  
+
+	  <h4>Inertial Delay</h4>
+
+	  <p>An inertial delay specification includes not just a signal propagation delay specification, but also a pulse width specification where input pulses that are shorter than this width are suppressed. Consider the following line:</p>
+
+	  <pre>
+	    <code class="vhdl">
+		output <= REJECT 5 ns INERTIAL NOT input AFTER 10 ns;
+	    </code>
+	  </pre>
+
+	  <p>Here, output will be an inverted copy of input delayed by the 10 ns propagation delay, but any pulses that are 5 ns long or of shorter duration will be suppressed! This is illustrated in Fig. 3.2.</p>
+
+	  <figure class="numFig">
+	    <img src="pics/sig_assign_inertial_reject_delay.png" alt="Inertial delay with reject" style="width:600px;height:271px;"/>
+	    <figcaption>Signal assignment with inertial delay and a minimum pulse width specification using reject (adapted from slide in Module 10 - VHDL Basics, Archives of the DARPA/Tri-Services RASSP Program output) <sup><a href="refs.html">[1]</a></sup>.</figcaption>
+	  </figure>  
+	  
+	  <p>The keyword REJECT is optional; if a minimum input pulse width is not specified explicitly, the pulse width is assumed to be the same as the propagation delay. Further, the default delay type in VHDL is inertial, so if the input pulse width is the same as the propagation delay, the word INERTIAL can also be left out! The waveform for the following assignment is illustrated in Fig. 3.3.</p>
+
+	  <pre>
+	    <code class="vhdl">
+		output <= NOT input AFTER 10 ns;
+	    </code>
+	  </pre>
+	  
+
+	  <figure class="numFig">
+	    <img src="pics/sig_assign_inertial_delay.png" alt="Inertial delay" style="width:600px;height:268px;"/>
+	    <figcaption>Signal assignment with inertial delay where the delay and minimum pulse width for suppression are the same (adapted from slide in Module 10 - VHDL Basics, Archives of the DARPA/Tri-Services RASSP Program output) <sup><a href="refs.html">[1]</a></sup>.</figcaption>
+	  </figure>  
+
+	  
+	  <div class="note">
+	      <ul>
+		<li>Why is inertial delay the default type, and indeed why is it even useful? Well, it mimics how hardware would behave. Any logic gate is made up of transistors, and a transistor always has a minimum response time, i.e., a minimum propagation delay. This means that for any transition of the input waveform (connected for example to the gate of a MOSFET), the output waveform (for example at the drain of the MOSFET) takes some non-zero time to update, depending typically on how long it takes for the MOSFET to turn on. If the input should make a second transition before the MOSFET has had time to turn on, it will remain off and the output will not change, though depending on the duration of the input pulse, the output may show a momentary dip (or rise) from the quiescent voltage of VDD (or ground). So long as this deviation is within the noise margin of the circuit, the digital value will remain unchanged at '1' or '0'.</li>
+	      </ul>	  
+	  </div>
+
+
+	  <p>Finally, let's look at an example where gates are modelled with an inertial delay broadly representative of the gate delay. Assume we have to model the circuit of Fig. 3.4. </p> 
+
+
+	  <figure class="numFig">
+	    <img src="pics/combi_timing_gateDelays.png" alt="Combinational circuit" style="width:600px;height:143px;"/>
+	    <figcaption>Combinational logic circuit.</figcaption>
+	  </figure>  
+
+	  <p>This circuit can be modelled by the following code:</p>
+	  
+	  <pre>
+	    <code class="vhdl">
+	      ENTITY logic_a IS
+	      PORT (
+		x:IN BIT; -- input
+		c:OUT BIT  -- output
+	      );
+	      END logic_a;
+
+	      ARCHITECTURE dataflow OF logic_a IS
+		SIGNAL a, b: BIT;
+	      BEGIN
+	        a <= NOT x AFTER 50 ps; -- INVERTER process
+		b <= a NAND '1' AFTER 70 ps; -- NAND process
+		c <= a AND b AFTER 60 ps; -- AND process
+	      END dataflow;
+	    </code>
+	  </pre>
+
+	  <p>The waveforms at circuit nodes corresponding to <a class="unix">x</a> being quiescent for a long while and making a transition at 0 ps is given in Fig.3.5. </p>
+	  <figure class="numFig">
+	    <img src="pics/sig_assign_inertial_delay_cct.png" alt="Inertial delay" style="width:620px;height:240px;"/>
+	    <figcaption>Waveforms at nodes for circuit of Fig. 3.4.</figcaption>
+	  </figure>  
+
+	  <p>The transition of <a class="unix">x</a> at 0 ps acts as a trigger for the inverter process, (<a id="process_looseDef">Note</a> that we loosely call a single line signal assignment a process here. We will adopt a more rigorous definition in <a href="behavioural.html#processBody">Section 4.1</a>.) Thus, a transaction is scheduled at 50 ps on the signal <a class="unix">a</a>. This event, a '0'->'1' transition, in turn acts as a trigger for two processes, the NAND process and AND process, as <a class="unix">a</a> is an input to both processes. Thus, signal <a class="unix">c</a> updates at 110 ps and signal <a class="unix">b</a> at 120 ps. As <a class="unix">b</a> is also an input to the AND process, this triggers a second transaction on <a class="unix">c</a>, which duly takes place 60 ps later, at 180 ps. The final result is that we observe a glitch at the output, which can be broadly described as a transition to an intermediate value before taking on its final value; if the gates were ideal and had zero physical delay, there would be no glitch.</p> 
+
+	  <div class="note">
+	      <ul>
+		<li>It is important to understand that the glitch is a result of unequal path delays from input to output. It is not a result of using VHDL (or any HDL) to model the circuit. Rather, using an HDL allows the actual behaviour to be accurately captured.</li>
+	      </ul> 
+	  </div>
+
+	  <h4>Delta Delay</h4>
+	  
+	  <p>If no physical delay is specified a signal assignment still cannot take place immediately. When a delay is not explicitly specified, signal assignments are scheduled to take place after a delta delay. This is a unit of time that is infinitesimally small but quantised, so that two deltas are greater than one delta and so on. To understand how delta delays work, let's first consider an example without delta delays, i.e., where signal assignments take place immediately (this example is based on an example by Douglas Perry <sup><a href="refs.html#perry">[8]</a></sup>).</p>
+
+	  <p>Given in Fig. 3.6 is the same circuit as Fig. 3.4 that we modelled earlier, without gate delays.</p>
+
+	  <figure class="numFig">
+	    <img src="pics/combi_timing.png" alt="Combinational circuit" style="width:600px;height:143px;"/>
+	    <figcaption>Combinational logic circuit.</figcaption>
+	  </figure>  	  
+
+
+	  <p>This circuit can be modelled by the following code:</p>
+	  
+	  <pre>
+	    <code class="vhdl">
+	      ENTITY logic_a IS
+	      PORT (
+		x:IN BIT; -- input
+		c:OUT BIT  -- output
+	      );
+	      END logic_a;
+
+	      ARCHITECTURE dataflow OF logic_a IS
+		SIGNAL a, b: BIT;
+	      BEGIN
+	        a <= NOT x; -- INVERTER process
+		b <= a NAND '1'; -- NAND process
+		c <= a AND b; -- AND process
+	      END dataflow;
+	    </code>
+	  </pre>
+
+	  <p>Just as before, assume that the input (node <a class="unix">x</a>) is quiescent at '1' for a long time and changes from '1'->'0', say at time 10 ns. In response, the inverter output (node <a class="unix">a</a>) makes a transition from '0'->'1'. Now we can choose to evaluate either the NAND gate or the AND gate first. The order in which the nodes transition for both choices is shown in Fig. 3.5</p>
+	  
+	 	     
+	  <figure class="numFig">
+	    <img src="pics/signal_transition_order.png" alt="Signal transition order" style="width:600px;height:173px;"/>
+	    <figcaption>Signal transitions at nodes <a class="unix" style="font-weight:300">x</a>, <a class="unix" style="font-weight:300">a</a>, <a class="unix" style="font-weight:300">b</a> and <a class="unix" style="font-weight:300">c</a> of circuit in Fig. 3.4 depending on which gate is evaluated first.</figcaption>
+	  </figure>  	  
+
+	  <p>As can be seen, depending on which gate we choose to evaluate first, node C will either experience a zero-width glitch (AND first) or not have any glitch (NAND first). This is highly unsatisfactory on many levels. First, we wish to see exactly the same output whatever simulator we choose, or however many times we choose to run this simulation. As the simulator has no guide on what to evaluate first, it cannot guarantee that the same output will always be produced for the same circuit and simulation setup. Second, we wish the evaluaton to closely mirror what would happen with real hardware, and real, physical gates always have delays.</p>
+	  
+	  <p>Now consider how this same circuit would be evaluated if every signal assignment had a delta delay associated with it. The order of node transitions is shown in Table 3.1.</p>
+	  
+	  <table class="table_class" width="600 px">
+	    <caption>Signal transitions at nodes X, A, B and C of circuit in Figure 11 with delta delays.</caption>
+	    <thead>
+	      <tr>
+		<th colspan="2" style="border-right: 2px solid #000">Time</th>
+		<th rowspan="2" style="border-bottom: 2px solid #000; border-right: 2px solid #000; ">Event</th>
+		<th rowspan="2" style="border-bottom: 2px solid #000">Process trigger due to event</th>
+	      </tr>
+	      <tr>
+		<th style="border-bottom: 2px solid #000">Physical</th>
+		<th style="border-bottom: 2px solid #000; border-right: 2px solid #000;">Delta</th>
+	      </tr>
+	    </thead>
+	    <tbody>
+	      <tr>
+		<td>10 ns</td>
+		<td style="border-right: 2px solid #000">0</td>
+		<td style="border-right: 2px solid #000">x: 1->0 </td>
+	        <td>Evaluate INV</td>
+	      </tr>
+	      <tr>
+		<td></td>
+		<td style="border-right: 2px solid #000">1</td>
+		<td style="border-right: 2px solid #000">a: 0->1</td>
+		<td>Evaluate NAND, AND</td>
+	      </tr>
+	      <tr>
+		<td></td>
+		<td style="border-right: 2px solid #000">2</td>
+		<td style="border-right: 2px solid #000">b: 1->0,&nbsp;&nbsp;c: 0->1</td>
+		<td>Evaluate AND</td>
+	      </tr>
+	      <tr>
+		<td></td>
+		<td style="border-right: 2px solid #000">3</td>
+		<td style="border-right: 2px solid #000">c: 1->0</td>
+		<td></td>
+	      </tr>
+	      <tr>
+		<td style="border-top: 2px solid #000">11 ns</td>
+		<td style="border-top: 2px solid #000; border-right: 2px solid #000;"></td>
+		<td style="border-top: 2px solid #000; border-right: 2px solid #000;"></td>
+		<td style="border-top: 2px solid #000"></td>
+	      </tr>
+	    </tbody>
+	  </table>
+		
+
+	<p>In this example, each signal assignment requires one delta delay before the signal assumes its new value. Also note that more than one process can be executed in the same simulation cycle (e.g. both the NAND process and the AND process are executed during delta 2). </p>
+
+	<p>Following the sequence of cascading signal assignments, the '1'->'0' transition on <a class="unix">x</a> causes the INVERTER process to be executed, which results in a '0'->'1' transition being scheduled on <a class="unix">a</a>, one delta time in the future. The INVERTER process then suspends. Since all processes are suspended, simulation time advances by one delta so that <a class="unix">a</a> can assume its new value.</p>
+
+	<p>The new value of <a class="unix">a</a> awakens the NAND and AND processes and they are executed. Because the value of <a class="unix">a</a> will not change again during simulation time delta 2, it doesn't matter whether the NAND or AND process is evaluated first. In either case, the NAND process leads to a '1' being scheduled for <a class="unix">c</a> and a '0' being scheduled for <a class="unix">b</a>, both one delta delay in the future. After the assignments are scheduled, the NAND and AND processes suspend again. Now simulation time advances by one delta again so that <a class="unix">b</a> and <a class="unix">c</a> can assume their new values.</p>
+
+	<p>The new value of <a class="unix">b</a> causes the AND process to be evaluated again. This time, a '0' value is scheduled to be assigned to <a class="unix">c</a> one delta delay in the future, and the AND process can then suspend. Finally, simulation time advances by one delta so that <a class="unix">c</a> can assume its new, and final value of '0'. This results in the behaviour we would logically expect with unequal path delays from input to output, a glitch.</p>
+	
+	<p>Thus, the delta delay associated with signal assignments allows the behaviour of real hardware, even if we do not know what the physical delays may be. For example, when using HDLs to programme FPGA hardware, the user does not know what the delays are at the point of implementing the functionality. The synthesis tools will populate these values as part of the automated flow after mapping the functionality to hardware. Having a delta delay ensures that the integrity of hardware behaviour is maintained regardless of whether or not a physical delay is associated with a gate in the functional description.</p>
+	<p>Make sure you understand signal assignment delays and inertial delays in particular, before going on to the following section.</p>
+
+	<h2 id="processes">Processes in VHDL</h2>
+	
+	<p>So far, we have only used single line signal assignments to describe functionality. A signal assignment is the simplest example of a <a class="unix">process</a> in VHDL, which is the fundamental element for describing component behaviour. In the case of a signal assignment, the process is <a class="emph1">implicit</a>; a process can also be declared <a class="emph1">explicitly</a>, using the key word <a class="unix">process</a>. We will look at processes in detail later (Section 4). For now, just consider that process bodies contain a series of statements, which are conditional signal assignment statements. In illustration, the following two fragments of code are <a class="emph1">completely equivalent</a>:</p>
+
+	<pre>
+	  <code class="vhdl">
+	    -- Code fragment 1
+	    ...
+	    q_prim <= a AND b;
+	    q <= NOT q_prim;
+	    ...
+	  </code>
+	</pre>
+
+	<pre>
+	  <code class="vhdl">
+	    -- Code fragment 2
+	    ...
+	    PROCESS(a, b)
+	    BEGIN
+	      q_prim <= a AND b;
+	    END PROCESS;
+
+	    PROCESS(q_prim)
+	    BEGIN
+	      q <= NOT q_prim;
+	    END PROCESS;
+	    ...
+	  </code>
+	</pre>
+
+	<p>The collection of signals inside the parenthesis just after the word process is known as the <a class="emph1">sensitivity list</a>. A sensitivity list is a way of specifying the triggers to wake the process up; it is not a syntax error to omit the sensitivity list, but will result in grave simulation errors, as the process will run only if there are events on the signals in its sensitivity list. </p>
+	
+	<p>Collections of processes describe the functionality of the component, and whether implicit or explicit, the mechanism for communicating between processes is the signal: <a class="emph3">events on signals that are inputs to a process trigger that process, and cause it to be executed</a>. Process executions then result in new events on signals they drive, which are inputs to other processes. This is how data propagates between communicating processes via shared signals.</p>
+
+	<p>The exact same functionality could also be achieved by one process instead of two:</p>
+
+	<pre>
+	  <code class="vhdl">
+	    PROCESS(a, b, q_prim)
+	    BEGIN
+	      q_prim <= a AND b;
+	      q <= NOT q_prim;
+	    END PROCESS;
+	  </code>
+	</pre>
+
+	<p>Notice how the sensitivty list contains <a class="emph1">all</a> signals that are read in that process. In this case, the process will run once, when an event on <a class="unix">a</a> or <a class="unix">b</a> occurs. When execution reaches the end of the process, it is scheduled to run again, as the execution of the first assignment results in a new trigger for the process.</p>
+
+	<h3>Simulation Cycle</h3>
+
+	<p>Now we are in a position to put it all together. The VHDL simulation model is essentially a 2-step process as shown in Fig. 3.6.</p> 
+
+	  <figure class="numFig">
+	    <img src="pics/sim_cycle.png" alt="Combinational circuit" style="width:600px;height:392px;"/>
+	    <figcaption>Combinational logic circuit.</figcaption>
+	  </figure>  	  
+	
+	<p>At the start of a simulation, signals with default values are assigned those initial values. In the first execution of the simulation cycle, all concurrent signal assignments are executed and changes are scheduled for some future point in time. Also, explicitly declared process bodies are executed until they reach their respective suspend points (the end of the process body, or a <a class="unix">wait</a> statement to be covered later). All process executions are concurrent.</p>
+
+	<p>Once all processes have been suspended, the simulator will advance simulation time just enough so that the first pending signal assignments can be made. After the relevant signals assume their new values, all processes examine their input signals to determine if they can proceed. Processes that can proceed will then execute concurrently again until they all reach their respective suspend points. This cycle continues until the simulation termination conditions are met or until all processes are suspended indefinitely because no new signal assignments are scheduled to trigger any suspended processes.</p>
+
+	<h2 id="mux_timing">Timing Analysis of a MUX</h2>
+
+	<p>Fig. 3.9 shows a multiplexer (MUX) with two data inputs (<a class="unix">a</a> and <a class="unix">b</a>), one address input (<a class="unix">s</a> for select) and one output (<a class="unix">q</a>). The address line selects which of the two inputs is to be connected to the output.</p>
+	
+	<figure class="numFig">
+	  <img src="pics/mux_2_1.png" alt="Combinational circuit" style="width:600px;height:335px;"/>
+	  <figcaption>Combinational logic circuit.</figcaption>
+	</figure>  	  
+	
+	<div class="exBox">
+	<a class="ex" id="ex_mux_imp">Gate-level implementation of MUX</a>		  
+	<ul>
+	<ol class="taskItem">
+	    <li>Construct a Karnaugh map for the logic schematic of Fig. 3.9 and thereby write the boolean equation for the output <a class="unix">q</a> in terms of the signals <a class="unix">a</a>, <a class="unix">b</a> and <a class="unix">s</a>. <a class="answer">Answer Quiz 1, Question 1</a>.</li>
+	    <li>Sketch a gate-level implementation using an inverter, AND and OR gates only. Also identify the signals in the supplied gate-level VHDL description "mux.vhd" that correspond to the nodes in your schematic, and mark them on your sketch.<a class="answer">Answer Quiz 1, Question 2</a>.</li>
+	</ol>
+	</div>
+	<br>
+
+	<div class="taskBox">  
+	<a class="task" id="task_mux_sim">Simulating the MUX</a>		  
+	<ol class="taskItem">
+	  <li>The description of this MUX is in the file "mux.vhd" and the testbench in "tb_testMux.vhd" under the folder "task3.4A" in the source archive. Create a new project in Vivado and add the source files.
+	    <div class="note">
+	      <ul>
+			<li>There are two architectures in the "mux.vhd" file, and if you look in the testbench you will see that they are both instantiated with the same input signals, but different output signals. This is the way to test different implementations of the same functionality, and emphasizes the black-box view of the component in the testing, i.e., we do not care what is inside the component, we want to verify that it meets the functional specifications.</li>
+	      </ul>		  
+	    </div>
+	  </li>
+	  <li>Compile all sources and load the design for simulation. Add appropriate signals to view and run the simulation for a long enough time that all transactions scheduled in the testbench can run, and have a look at the waveforms.
+	    <div class="note">
+	      <ul>
+		<li>Adding all the signals in the design as default can result in multiple copies of essentially the same waveform and make for confusing viewing. For example in this case, if you add all the signals in the design, the <a class="emph2">Wave</a> window is populated with <a class="unix">testvector</a>, <a class="unix">C1/a</a>, <a class="unix">C1/b</a>, <a class="unix">C1/address</a>, <a class="unix">C2/a</a>, <a class="unix">C2/b</a> and <a class="unix">C2/address</a>. As the inputs are common, you really only need to look at <a class="unix">a</a>, <a class="unix">b</a> and <a class="unix">address</a> for either <a class="unix">C1</a> or <a class="unix">C2</a>. In a design with hundreds of signals, spending some time choosing what signals to view at the outset can greatly reduce the visual stress of separating different waveforms when debugging a design.</li>
+		<li>You can simply select any extraneous signals in the <a class="emph2">Wave</a> window and delete them.</li>
+	      </ul>		  
+	    </div>
+
+	</li>
+
+	<li>Sometimes it is very useful in debugging to observe how signal values change in real time, rather than running the entire simulation and then tracing individual waveforms. You can step through code, set up breakpoints, run the simulation up to various lines selectively, and generally do all of the common tasks that a software debugger environment supports.<p>
+	    The Vivado simulator marks the executable lines with an empty red circle (e.g., line 21 in the following figure), on the left hand margin of the Text Editor, beside the line numbers. Click the red circle in the left margin, to set a breakpoint, as shown in the following figure line 23.
+        Observe that the empty circle becomes a red dot to indicate that a breakpoint is set on this line. Clicking on the red dot  removes the breakpoint and reverts it to the empty circle. Debugging in the Vivado simulator, with breakpoints and line stepping, works best when you can view the Tcl Console, the Waveform window, and the HDL source file at the same time, as shown in the following figure. Restart the simulation by clicking on the <a class="emph2">Run All</a> button to the left of the simulation run-time cage as shown in Fig. 3.10. Click the <a class="emph2">Restart</a> button as shown in below figure to restart the simulation from time 0. Step through the code and see the waveforms change in response to the various events.
+
+    
+        Setting a breakpoint causes the simulator to stop at that point, every time the simulator processes that code, or every time the counter is incremented by one.</p>
+
+          <figure class="numFig">
+	    <img src="pics/modelsim_sim_controls.png" alt="Modelsim simulation controls" style="width:900px;"/>
+	    <figcaption>"Step" and "Restart" buttons.</figcaption>
+	  </figure> 
+	      
+
+	  <div class="note">
+	      <ul>
+		<li>You can single-step through the execution by clicking on the <a class="emph2">"Step"</a> button as shown in Fig. 3.10. This allows you to check the value at a given execution time step. It is better to click on <a class="emph2">"Relaunch Simulation"</a> button before starting to use the <a class="emph2">"Step"</a> button and go through the execution. 
+		<li>A breakpoint can be placed in the code by right-clicking on the line-number in the source window and selecting the appropriate command. Lines that will accept breakpoints are shown with red empty circles. After placing break points You can now press <a class="emph2">"Run All"</a> and the execution will stop at the first break point. You can then step through the code, or click <a class="emph2">"Run All"</a> again to continue till the next break point.
+
+		<li>You can "undock" any window by clicking on the <a class="emph2">"Float"</a> button on the top right corner. It is often convenient when debugging to step through the code, and have the <a class="emph2">Wave</a> window also visible, to show waveforms changing in response to lines of code executing. You can also rigth click on the code or Wave window tab and select <a class="emph2">"New Vertical Group"</a> to see both code and waveform windows side by side.  </li>
+		<li>You can revert to the default window setting by selecting <a class="emph2">Layout->Reset Layout </a> from the top menu.</li>
+	      </ul>		  
+	    </div>
+
+	</li>
+
+	<li>For this step, you need to use ModelSim to check the wave window and observe the delta dely. You will see in the Wave window that signals <a class="unix">gateResult</a> and <a class="unix">C2/q</a>  waveforms (which are identical) have zero-delay glitches at 25 ns and 30 ns, while <a class="unix">C2/int2</a>  has a zero-delay glitch at 30 ns. You can see how the delta delay works and how signal assignments trigger processes by expanding the time scale to include delta delays.
+
+	  <div class="note">
+	      <ul>
+		<li>To enable "expanded time", right-click anywhere in the <a class="emph2">Wave</a> window, and from the pop-up menu, select <a class="emph2">Expanded Time -> Deltas Mode</a>. Now the glitches will be annotated with red circles.</li>
+		<li>To display time with deltas, click anywhere in the <a class="emph2">Wave</a> window at 25 ns to place the cursor there. Then right-click and select <a class="emph2">Expanded Time -> Expand Cursor.</a> Now the delta delays will be shown in a blue shaded region.</li>
+		<li>To disable deltas mode and hide expanded time, you can right click and choose <a class="emph2">Expanded Time -> Off and Expanded Time -> Collapse Cursor</a> respectively.</li>
+	      </ul>		  
+	    </div>
+
+	</li>
+
+	</ol>
+  </div>
+
+  <br>
+  
+   <div class="exBox"> 
+    <a class="ex" id="ex_mux_glitch">Glitches in the MUX</a>		  
+    <ol class="taskItem">
+      <li>Check in detail how the glitches are generated at 25 ns in gateResult using modelsim. Based on your obersvations, understand how events on signals in the testbench that serve as input stimuli awaken processes inside the logic implementation, similar to the example described earlier. Answer the question: Why isn't the output exactly the same from both implementations? <a class="answer">Answer Quiz 1, Question 3</a>.</li>
+      <li>Change the order of instructions in the <a class="unix">"gates"</a> architecture, re-compile and re-simulate. The glitches can be only observed with ModelSim with the deltas mode on. Can you get rid of the glitch? <a class="answer">Answer Quiz 1, Question 4</a>.</li>
+    </ol>
+	</ul>
+    </div>
+
+	 
+    <h2 id="summary">Summary</h2>
+
+    <p>The following points were covered in this section. 
+      <ul>
+	<li>All signal assignments incur a delay, even when there is no explict transaction delay specified. When a delay is not specified, signal assigments incur delta delays, which are infintessimally small, but quantised, so that 2 deltas are greater then 1, 3 greater than 2 and so on. Signal assignment delays reflect the non-zero propagation delay across physical devices, passives and interconnects (wires) and are a critical part of ensuring unambiguous and consistent behaviour in sumulation.</li> 
+	<li>There are two types of signal assignment delays in VHDL, <a class="emph1">transport delays</a>, where a physical delay is specificed, and the signals updates after the specified time; and <a class="emph1">inertial delays</a>, where the signal updates only if the duration of any input pulses is greater than the specified delay. Inertial delays are the default type, and mimic the behaviour of real hardware where pulses of duration smaller than the (non-zero) response time of the underlying devices (i.e., transistors) do not cause switching.</li>
+	<li>HDL simulators are event-driven, with changes on signals (called <a class="emph1">events</a>) triggering the execution of statments where those signals are inputs.</li> 
+	<li>Concurrent signal assignment statements can reside inside an architecture body. A <a class="unix">process</a> is a mechanism used to encapsulte a body of statements. Multiple processes execute cocurrently. Processes are triggered by activity on signals contained in a <a class="emph1">sensitivity list</a>. A signal assignment statement is equivalent to a single line process with the signals on the right-hand side included in the sensitivity list. </li>
+      </ul>
+    </p>
+
+    <table class="arrows">
+      <tr>
+	<td><a href="index.html"><img src="pics/l_d_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="intro.html"><img src="pics/l_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="behavioural.html"><img src="pics/r_arw.png"></a></td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+	<td><a href="A2_index.html"><img src="pics/r_d_arw.png"></a></td>
+      </tr>
+    </table>
+
+
+  </body>
+
+<!-- Mirrored from seis.bristol.ac.uk/~sy13201/digital_design/ECAD/timing.htm by HTTrack Website Copier/3.x [XR&CO'2014], Thu, 12 Mar 2026 17:48:03 GMT -->
+</html>
