@@ -67,7 +67,6 @@ begin
     
     combinational: process(all)
     begin
-        -- Default values
         next_state <= curr_state;
         rxDone <= '0';
         start <= '0';
@@ -102,7 +101,9 @@ begin
                 next_state <= WAIT_FOR_DATA_READY;
 
             when WAIT_FOR_DATA_READY =>
-                if seqDone = '1' then next_state <= INIT; end if;
+                if seqDone = '1' then
+                    next_state <= INIT;
+                end if;
 
             when PEAK | LIST =>
                 next_state <= SEND_DATA;
@@ -134,6 +135,7 @@ begin
 
             when others =>
                 next_state <= INIT;
+                
         end case;
     end process;
 end behavioural;
