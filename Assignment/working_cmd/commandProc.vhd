@@ -29,12 +29,13 @@ end cmdProc;
 architecture behavoural of cmdProc is
     -- constant baudRate : integer := 9600;
     type state_type is (
-        INIT, START_DATA_PROCESSING, WAIT_FOR_DATA_READY, SEND_DATA, WAIT_FOR_NEXT_WORD,
+        INIT, START_DATA_PROCESSING, WAIT_FOR_DATA_READY, SEND_DATA, 
         D1, D2, D3, LIST, PEAK -- States need to be workshopped!
         );
     signal curr_state, next_state: state_type;
     signal bcd_reg: std_logic_vector(11 downto 0);
-    signal byte_wait: std_logic_vector(7 downto 0);
+    -- signal byte_wait: std_logic_vector(7 downto 0);
+    signal byte_counter: integer range 0 to 7:= 0; 
     -- signal clk: integer := 1;
     -- signal ctrl1, ctrl2: std_logic;
 
@@ -51,6 +52,8 @@ architecture behavoural of cmdProc is
                         when D1 => bcd_reg(11 downto 8) <= dataIn(3 downto 0);
                         when D2 => bcd_reg(7 downto 4)  <= dataIn(3 downto 0);
                         when D3 => bcd_reg(3 downto 0)  <= dataIn(3 downto 0);
+                        when LIST => 
+                        when PEAK =>
                         when others => null;
                     end case;
                 end if;
@@ -67,6 +70,7 @@ architecture behavoural of cmdProc is
             dataOut <= (others => '0');
 
             case curr_state is
+
                 when INIT =>
                     if valid = '1' then
                         rxDone <= '1';
@@ -109,6 +113,10 @@ architecture behavoural of cmdProc is
                 when WAIT_FOR_DATA_READY =>
                     if seqDone = '1' then
                         next_state <= INIT;
+                    end if;
+                
+                when SEND_DATA =>
+                    if 
                     end if;
 
             end case;
