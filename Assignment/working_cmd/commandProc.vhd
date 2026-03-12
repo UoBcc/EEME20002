@@ -27,6 +27,10 @@ entity cmdProc is
 end cmdProc;
 
 architecture behavoural of cmdProc
+    type state_type is (
+        INIT, LOAD_WORD, PROCESS_WORD, START_DATA_PROCESSING, WAIT_FOR_DATA_READY, SEND_DATA, WAIT_FOR_NEXT_WORD
+        );
+    signal curr_state, next_state, prev_state: state_type;
 
     begin
     end behavoural;
