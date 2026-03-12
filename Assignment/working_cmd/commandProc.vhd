@@ -20,8 +20,8 @@ entity cmdProc is
         numWords: out std_logic_vector(11 downto 0);
         dataReady: in std_logic;
         byte: in std_logic_vector(7 downto 0);
-        maxIndex: in std_logic_vector(11 downto 0)
-        dataResults: in std_logic_vector(55 downto 0)
+        maxIndex: in std_logic_vector(11 downto 0);
+        dataResults: in std_logic_vector(55 downto 0);
         seqDone: in std_logic;
     );
 end cmdProc;
@@ -32,9 +32,19 @@ architecture behavoural of cmdProc
         INIT, LOAD_WORD, PROCESS_WORD, START_DATA_PROCESSING, WAIT_FOR_DATA_READY, SEND_DATA, WAIT_FOR_NEXT_WORD
         );
     signal curr_state, next_state: state_type;
-    signal clk: integer := 1;
+    signal bcd_reg: std_logic_vector(11 downto 0);
+    signal byte_wait: std_logic_vector(7 downto 0);
+    -- signal clk: integer := 1;
+    -- signal ctrl1, ctrl2: std_logic;
 
     begin
+        state_register: process(clk, reset)
+        begin
+            if reset = '1' then
+                curr_state <= IDLE;
+            elsif risingedge(clk) then
+                curr_state <= next_state;
+            end if;
+        end process;
         -- combinational: process();
-        -- memory: process(clk);
     end behavoural;
