@@ -22,7 +22,7 @@ entity cmdProc is
         byte: in std_logic_vector(7 downto 0);
         maxIndex: in std_logic_vector(11 downto 0);
         dataResults: in std_logic_vector(55 downto 0);
-        seqDone: in std_logic;
+        seqDone: in std_logic
     );
 end cmdProc;
 
@@ -44,13 +44,13 @@ architecture behavoural of cmdProc is
             if reset = '1' then
                 curr_state <= INIT;
                 bcd_reg <= (others => '0');
-            elsif risingedge(clk) then
+            elsif rising_edge(clk) then
                 curr_state <= next_state;
                 if valid = '1' and oe = '0' and fe = '0' then
                     case curr_state is
-                        when GET_D1 => bcd_reg(11 downto 8) <= dataIn(3 downto 0);
-                        when GET_D2 => bcd_reg(7 downto 4)  <= dataIn(3 downto 0);
-                        when GET_D3 => bcd_reg(3 downto 0)  <= dataIn(3 downto 0);
+                        when D1 => bcd_reg(11 downto 8) <= dataIn(3 downto 0);
+                        when D2 => bcd_reg(7 downto 4)  <= dataIn(3 downto 0);
+                        when D3 => bcd_reg(3 downto 0)  <= dataIn(3 downto 0);
                         when others => null;
                     end case;
                 end if;
@@ -88,16 +88,16 @@ architecture behavoural of cmdProc is
                 when D1 =>
                     if valid = '1' then
                         rxDone <= '1';
-                        next_state <= (INIT) when (oe = '1' or fe = '1') else GET_D2;
+                        next_state <= (INIT) when (oe = '1' or fe = '1') else D2;
                 end if;
 
-                when GET_D2 =>
+                when D2 =>
                     if valid = '1' then
                         rxDone <= '1';
-                        next_state <= (INIT) when (oe = '1' or fe = '1') else GET_D3;
+                        next_state <= (INIT) when (oe = '1' or fe = '1') else D3;
                     end if;
 
-                when GET_D3 =>
+                when D3 =>
                     if valid = '1' then
                         rxDone <= '1';
                         next_state <= (INIT) when (oe = '1' or fe = '1') else START_DATA_PROCESSING;
