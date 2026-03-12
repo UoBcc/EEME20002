@@ -26,110 +26,114 @@ entity cmdProc is
     );
 end cmdProc;
 
-architecture behavoural of cmdProc is
-    -- constant baudRate : integer := 9600;
+architecture behavioural of cmdProc is
     type state_type is (
         INIT, START_DATA_PROCESSING, WAIT_FOR_DATA_READY, SEND_DATA, 
-        D1, D2, D3, LIST, PEAK -- States need to be workshopped!
-        );
+        D1, D2, D3, LIST, PEAK, TX_WAIT
+    );
     signal curr_state, next_state: state_type;
     signal bcd_reg: std_logic_vector(11 downto 0);
-    -- signal byte_wait: std_logic_vector(7 downto 0);
-    signal byte_counter: integer range 0 to 7:= 0; 
-    -- signal clk: integer := 1;
-    -- signal ctrl1, ctrl2: std_logic;
+    signal byte_counter: integer range 0 to 7 := 0; 
 
+begin
+
+    state_register: process(clk, reset)
     begin
-        state_register: process(clk, reset)
-        begin
-            if reset = '1' then
-                curr_state <= INIT;
-                bcd_reg <= (others => '0');
-            elsif rising_edge(clk) then
-                curr_state <= next_state;
-                if valid = '1' and oe = '0' and fe = '0' then
-                    case curr_state is
-                        when D1 => bcd_reg(11 downto 8) <= dataIn(3 downto 0);
-                        when D2 => bcd_reg(7 downto 4)  <= dataIn(3 downto 0);
-                        when D3 => bcd_reg(3 downto 0)  <= dataIn(3 downto 0);
-                        when others => null;
-                    end case;
+        if reset = '1' then
+            curr_state <= INIT;
+            bcd_reg <= (others => '0');
+            byte_counter <= 0;
+        elsif rising_edge(clk) then
+            curr_state <= next_state;
+
+            if valid = '1' and oe = '0' and fe = '0' then
+                case curr_state is
+                    when D1 => bcd_reg(11 downto 8) <= dataIn(3 downto 0);
+                    when D2 => bcd_reg(7 downto 4)  <= dataIn(3 downto 0);
+                    when D3 => bcd_reg(3 downto 0)  <= dataIn(3 downto 0);
+                    when others => null;
+                end case;
+            end if;
+
+            if curr_state = TX_WAIT and txDone = '1' then
+                if byte_counter < 6 then
+                    byte_counter <= byte_counter + 1;
+                else
+                    byte_counter <= 0;
                 end if;
             end if;
-        end process;
-        
-        combinational: process(all)
-        begin
-            next_state <= curr_state;
-            rxDone <= '0';
-            start <= '1' when curr_state = START_DATA_PROCESSING else '0';
-            numWords <= bcd_reg;
-            txNow <= '0';
-            dataOut <= (others => '0');
+        end if;
+    end process;
+    
+    combinational: process(all)
+    begin
+        -- Default values
+        next_state <= curr_state;
+        rxDone <= '0';
+        start <= '0';
+        numWords <= bcd_reg;
+        txNow <= '0';
+        dataOut <= (others => '0');
 
-            case curr_state is
-
-                when INIT =>
-                    if valid = '1' then
-                        rxDone <= '1';
-                        if (oe = '0' and fe = '0') then
-                            if (dataIn = x"41" or dataIn = x"61") then
-                                next_state <= D1;
-                            elsif (dataIn = x"70" or dataIn = x"50") then
-                                next_state <= PEAK;
-                            elsif (dataIn = x"4C" or datain = x"6C") then
-                                next_state <= LIST;
-                            else
-                                next_state <= INIT;
-                            end if;
-                        else
-                            next_state <= INIT;
+        case curr_state is
+            when INIT =>
+                if valid = '1' then
+                    rxDone <= '1';
+                    if (oe = '0' and fe = '0') then
+                        if (dataIn = x"41" or dataIn = x"61") then next_state <= D1;
+                        elsif (dataIn = x"70" or dataIn = x"50") then next_state <= PEAK;
+                        elsif (dataIn = x"4C" or dataIn = x"6C") then next_state <= LIST;
                         end if;
                     end if;
-
-                when D1 =>
-                    if valid = '1' then
-                        rxDone <= '1';
-                        next_state <= (INIT) when (oe = '1' or fe = '1') else D2;
                 end if;
 
-                when D2 =>
-                    if valid = '1' then
-                        rxDone <= '1';
-                        next_state <= (INIT) when (oe = '1' or fe = '1') else D3;
+            when D1 | D2 | D3 =>
+                if valid = '1' then
+                    rxDone <= '1';
+                    if (oe = '1' or fe = '1') then next_state <= INIT;
+                    elsif curr_state = D1 then next_state <= D2;
+                    elsif curr_state = D2 then next_state <= D3;
+                    else next_state <= START_DATA_PROCESSING;
                     end if;
+                end if;
 
-                when D3 =>
-                    if valid = '1' then
-                        rxDone <= '1';
-                        next_state <= (INIT) when (oe = '1' or fe = '1') else START_DATA_PROCESSING;
-                    end if;
-                
-                when PEAK =>
-                    if valid = '1' then
-                        rxDone <= '1';
-                    next_state <= (INIT) when (oe = '1' or fe = '1') else SEND_DATA;
+            when START_DATA_PROCESSING =>
+                start <= '1';
+                next_state <= WAIT_FOR_DATA_READY;
 
-                when LIST =>
-                    if valid = '1' then
-                        rxDone <= '1';
-                    next_state <= (INIT) when (oe = '1' or fe = '1') else SEND_DATA;
+            when WAIT_FOR_DATA_READY =>
+                if seqDone = '1' then next_state <= INIT; end if;
 
-                when START_DATA_PROCESSING =>
-                    next_state <= WAIT_FOR_DATA_READY;
+            when PEAK | LIST =>
+                next_state <= SEND_DATA;
 
-                when WAIT_FOR_DATA_READY =>
-                    if seqDone = '1' then
-                        next_state <= INIT;
-                    end if;
-                
-                when SEND_DATA =>
-                    if txDone = '1' then
+            when SEND_DATA =>
+                if txDone = '1' then
+                    txNow <= '1';
+                    case byte_counter is
+                        when 0 => dataOut <= dataResults(55 downto 48);
+                        when 1 => dataOut <= dataResults(47 downto 40);
+                        when 2 => dataOut <= dataResults(39 downto 32);
+                        when 3 => dataOut <= dataResults(31 downto 24);
+                        when 4 => dataOut <= dataResults(23 downto 16);
+                        when 5 => dataOut <= dataResults(15 downto 8);
+                        when 6 => dataOut <= dataResults(7 downto 0);
+                        when others => dataOut <= x"00";
+                    end case;
+                    next_state <= TX_WAIT;
+                end if;
+
+            when TX_WAIT =>
+                if txDone = '1' then
+                    if byte_counter = 0 then
                         next_state <= INIT;
                     else
                         next_state <= SEND_DATA;
                     end if;
+                end if;
 
-            end case;
-        end process;
-    end behavoural;
+            when others =>
+                next_state <= INIT;
+        end case;
+    end process;
+end behavioural;
