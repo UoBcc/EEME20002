@@ -8,7 +8,7 @@ entity cmdProc is
 
         rxDone: out std_logic;
         dataIn: in std_logic_vector(7 downto 0);
-        valid: in std_logic; -- dataReady in Rx port description
+        valid: in std_logic;
         oe: in std_logic;
         fe: in std_logic;
 
@@ -89,10 +89,14 @@ begin
             when D1 | D2 | D3 =>
                 if valid = '1' then
                     rxDone <= '1';
-                    if (oe = '1' or fe = '1') then next_state <= INIT;
-                    elsif curr_state = D1 then next_state <= D2;
-                    elsif curr_state = D2 then next_state <= D3;
-                    else next_state <= START_DATA_PROCESSING;
+                    if (oe = '1' or fe = '1') then 
+                        next_state <= INIT;
+                    elsif curr_state = D1 then
+                        next_state <= D2;
+                    elsif curr_state = D2 then
+                        next_state <= D3;
+                    else
+                        next_state <= START_DATA_PROCESSING;
                     end if;
                 end if;
 
@@ -135,7 +139,7 @@ begin
 
             when others =>
                 next_state <= INIT;
-                
+
         end case;
     end process;
 end behavioural;
