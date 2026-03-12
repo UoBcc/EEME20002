@@ -52,8 +52,6 @@ architecture behavoural of cmdProc is
                         when D1 => bcd_reg(11 downto 8) <= dataIn(3 downto 0);
                         when D2 => bcd_reg(7 downto 4)  <= dataIn(3 downto 0);
                         when D3 => bcd_reg(3 downto 0)  <= dataIn(3 downto 0);
-                        when LIST => 
-                        when PEAK =>
                         when others => null;
                     end case;
                 end if;
@@ -106,6 +104,16 @@ architecture behavoural of cmdProc is
                         rxDone <= '1';
                         next_state <= (INIT) when (oe = '1' or fe = '1') else START_DATA_PROCESSING;
                     end if;
+                
+                when PEAK =>
+                    if valid = '1' then
+                        rxDone <= '1';
+                    next_state <= (INIT) when (oe = '1' or fe = '1') else SEND_DATA;
+
+                when LIST =>
+                    if valid = '1' then
+                        rxDone <= '1';
+                    next_state <= (INIT) when (oe = '1' or fe = '1') else SEND_DATA;
 
                 when START_DATA_PROCESSING =>
                     next_state <= WAIT_FOR_DATA_READY;
