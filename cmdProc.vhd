@@ -61,7 +61,7 @@ BEGIN
 
             WHEN INIT =>
                 IF reset='0' THEN nextState <= INIT;
-                ELSIF valid='1' AND oe='0' AND fe='1' THEN
+                ELSIF valid='1' AND oe='0' AND fe='0' THEN
                     word <= data;
                     nextState <= processWordA;
                 ELSE nextState <= init;
@@ -77,7 +77,7 @@ BEGIN
             
             WHEN nextWordA =>
                 IF reset='0' THEN nextState <= INIT;
-                ELSIF valid='1' AND oe='0' AND fe='1' THEN
+                ELSIF valid='1' AND oe='0' AND fe='0' THEN
                     word <= data;
                     nextState <= processWordAN;
                 ELSE nextState <= nextWordA;
@@ -88,13 +88,13 @@ BEGIN
                 n1 <= word;
                 done <= '1';
                 nextState <= nextWordAN;
-                ELSIF resultsStored='1' THEN nextState <= waitNextWord;
+                ELSIF resultsStored='1' THEN nextState <= waitNextWordLP;
                 ELSE nextState <= INIT;
                 END IF;
             
             WHEN nextWordAN =>
                 IF reset='0' THEN nextState <= INIT;
-                ELSIF valid='1' AND oe='0' AND fe='1' THEN
+                ELSIF valid='1' AND oe='0' AND fe='0' THEN
                     word <= data;
                     nextState <= processWordANN;
                 ELSE nextState <= nextWordAN;
@@ -105,13 +105,13 @@ BEGIN
                 n2 <= word;
                 done <= '1';
                 nextState <= nextWordANN;
-                ELSIF resultsStored='1' THEN nextState <= waitNextWord;
+                ELSIF resultsStored='1' THEN nextState <= waitNextWordLP;
                 ELSE nextState <= INIT;
                 END IF;
             
             WHEN nextWordANN =>
                 IF reset='0' THEN nextState <= INIT;
-                ELSIF valid='1' AND oe='0' AND fe='1' THEN
+                ELSIF valid='1' AND oe='0' AND fe='0' THEN
                     word <= data;
                     nextState <= processWordANNN;
                 ELSE nextState <= nextWordANN;
@@ -123,7 +123,7 @@ BEGIN
                 start <= '1';
                 nextState <= startDataProc;
                 resultsStored <= '0';
-                ELSIF resultsStored='1' THEN nextState <= waitNextWord;
+                ELSIF resultsStored='1' THEN nextState <= waitNextWordLP;
                 ELSE nextState <= INIT;
                 END IF;
             
@@ -142,7 +142,7 @@ BEGIN
             
             WHEN sendData =>
                 IF txDone='0' THEN nextState <= sendData;
-                ELSIF txDone='1' AND seqDone='1' THEN nextState <= waitNextWord;
+                ELSIF txDone='1' AND seqDone='1' THEN nextState <= waitNextWordLP;
                 ELSIF txDone='1' AND seqDone='0' THEN
                 nextState <= startDataProc;
                 maxIndexStore <= maxIndex;
@@ -151,27 +151,77 @@ BEGIN
                 resultsStored <= '1';
                 END IF;
 
-            WHEN waitNextWord =>
+            WHEN waitNextWordLP =>
                 IF reset='0' THEN nextState <= INIT;
-                ELSIF valid='1' AND oe='0' AND fe='1' THEN
+                ELSIF valid='1' AND oe='0' AND fe='0' THEN
                     word <= data;
                     nextState <= processWordLP;
-                ELSE nextState <= waitNextWord;
+                ELSE nextState <= waitNextWordLP;
                 END IF;
             
             WHEN processWordLP =>
                 --statement to check l or L
                 IF word='01001100' OR '01101100' THEN
-                nextState <= listResults;
+                    nextState <= listResults;
                 -- statement to check for p or p
                 ELSIF word='01010000' OR '01110000' THEN
-                nextState <= peakResults;
+                    nextState <= peakResults;
                 --statement to check if a or A
                 ELSIF word='01100001' OR word='01000001' THEN
-                nextState <= nextWordA;
+                    nextState <= nextWordA;
                 ELSE nextState <= processWordLP;
+                END IF;
             
+            WHEN peakResults =>
+                txCount <= txCount + '1';
+                IF txCount <= '01' THEN
+                    txNow <= '1';
+                    dataOut <= MIbyte0;
+                    nextState <= txWaitPeak;
+                ELSIF txCount <= '10' THEN
+                    txNow <= '1';
+                    dataOut <= MIbyte1;
+                    nextState <= txWaitPeak;
+                ELSIF txCount <= '11' THEN
+                    txNow <= '1';
+                    dataOut <= MIbyte2;
+                    nextState <= txWaitPeak;
+                END IF;
+            
+            WHEN txWaitPeak =>
+                txNow <= '0';
+                IF txCount='11' AND txDone='1' THEN
+                    txCount <= '00' 
+                    nextState <= waitNextWordLP;
+                ELSIF txCount='10' AND txDone='1' 
+                    THEN nextState <= peakResults;
+                ELSIF txCount='01' AND txDone='1' 
+                    THEN nextState <= peakResults;
+                ELSIF txDone='0'
+                    THEN nextState <= waitNextWordLP;
+
             WHEN listResults =>
+                txCount <= txCount + '1';
+                IF txCount <= '01' THEN
+                    txNow <= '1';
+                    dataOut <= MIbyte0;
+                    nextState <= txWaitPeak;
+                ELSIF txCount <= '10' THEN
+                    txNow <= '1';
+                    dataOut <= MIbyte1;
+                    nextState <= txWaitPeak;
+                ELSIF txCount <= '11' THEN
+                    txNow <= '1';
+                    dataOut <= MIbyte2;
+                    nextState <= txWaitPeak;
+
+
+        
+
+
+            
+
+
 
 
             
