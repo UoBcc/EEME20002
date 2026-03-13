@@ -32,13 +32,26 @@ ARCHITECTURE FSM of cmdProc is
     TYPE state_type is (INIT, loadWord, );
     SIGNAL curState, nextState: STATE_TYPE;
 BEGIN
-    -- concurrent calculations --
+    -- concurrent calculations
     numWords <= n1(3 downto 0) & n2(3 downto 0) & n3(3 downto 0)
-    -- next state logic --
+    -- splitting data results into 8 byte chunks for tx
+    DRbyte6 <= dataResultsStore(55 downto 48)
+    DRbyte5 <= dataResultsStore(47 downto 40)
+    DRbyte4 <= dataResultsStore(39 downto 32)
+    DRbyte3 <= dataResultsStore(31 downto 24)
+    DRbyte2 <= dataResultsStore(23 downto 16)
+    DRbyte1 <= dataResultsStore(16 downto 8)
+    DRbyte0 <= dataResultsStore(7 downto 0)
+    -- splitting and also converting the bcd result to an ascii output
+    MIbyte2 <= '0011' & maxIndexStore(11 downto 8)
+    MIbyte1 <= '0011' & maxIndexStore(7 downto 4)
+    MIbyte0 <= '0011' & maxIndexStore(3 downto 0)
+
+    -- next state logic
     combi_nextState: process(curState, x)
     BEGIN
         CASE curState IS
-        -- assign default values to all outputs to avoid inferred latches --
+        -- assign default values to all outputs to avoid inferred latches
             nextState <= curState; 
             done <= '0';
             data <= '0';
