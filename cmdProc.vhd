@@ -43,12 +43,12 @@ BEGIN
     DRbyte1 <= dataResultsStore(16 downto 8)
     DRbyte0 <= dataResultsStore(7 downto 0)
     -- splitting and also converting the bcd result to an ascii output
-    MIbyte2 <= '0011' & maxIndexStore(11 downto 8)
-    MIbyte1 <= '0011' & maxIndexStore(7 downto 4)
-    MIbyte0 <= '0011' & maxIndexStore(3 downto 0)
+    MIbyte2 <= '0011' & maxIndexStore(11 downto 8) --hundreds
+    MIbyte1 <= '0011' & maxIndexStore(7 downto 4) --tens
+    MIbyte0 <= '0011' & maxIndexStore(3 downto 0) --units
 
     -- next state logic
-    combi_nextState: process(curState, x)
+    combi_nextState: process(curState, remaining inputs) --need to complete
     BEGIN
         CASE curState IS
         -- assign default values to all outputs to avoid inferred latches
@@ -169,7 +169,10 @@ BEGIN
                 --statement to check if a or A
                 ELSIF word='01100001' OR word='01000001' THEN
                 nextState <= nextWordA;
-                ELSE
+                ELSE nextState <= processWordLP;
+            
+            WHEN listResults =>
+
 
             
 
