@@ -39,8 +39,8 @@ ARCHITECTURE FSM of cmdProc is
     SIGNAL n2 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
     SIGNAL n3 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0'); --init all ascii signals
 
-    SIGNAL maxIndexStore : STD_LOGIC_VECTOR(55 downto 0) := (others => '0');
-    SIGNAL dataResultsStore : STD_LOGIC_VECTOR(11 downto 0) := (others => '0'); --init data stores
+    SIGNAL maxIndexStore : STD_LOGIC_VECTOR(11 downto 0) := (others => '0');
+    SIGNAL dataResultsStore : STD_LOGIC_VECTOR(55 downto 0) := (others => '0'); --init data stores
 
     SIGNAL resultsStored : STD_LOGIC := '0';
     SIGNAL txCount : unsigned(2 downto 0) := "000"; --init "counters" (resultsStored counts as a counter right?)
@@ -163,7 +163,7 @@ BEGIN
                     WHEN waitDataReady =>
                         IF dataReady='0' THEN curState <= waitDataReady;
                         ELSE
-                        start <= '0'
+                        start <= '0';
                         dataOut <= byte;
                         txNow <= '1';
                         curState <= sendData;
@@ -202,85 +202,90 @@ BEGIN
                         END IF;
                     
                     WHEN peakResults =>
-                        txCount <= txCount + 1;
-                        IF txCount <= 1 THEN
-                            txNow <= '1';
-                            dataOut <= MIbyte0;
-                            curState <= txWaitPeak;
-                        ELSIF txCount <= 2 THEN
-                            txNow <= '1';
-                            dataOut <= MIbyte1;
-                            curState <= txWaitPeak;
-                        ELSIF txCount <= 3 THEN
-                            txNow <= '1';
-                            dataOut <= MIbyte2;
-                            curState <= txWaitPeak;
+                        IF txDone='1' THEN --had to wrap the peak/listresults cases in a txdone check to make sure the flow doesn't fall through due to the slow speed of the UART
+                            txCount <= txCount + 1;
+                            IF txCount = 0 THEN
+                                txNow <= '1';
+                                dataOut <= MIbyte0;
+                                curState <= txWaitPeak;
+                            ELSIF txCount = 1 THEN
+                                txNow <= '1';
+                                dataOut <= MIbyte1;
+                                curState <= txWaitPeak;
+                            ELSIF txCount = 2 THEN
+                                txNow <= '1';
+                                dataOut <= MIbyte2;
+                                curState <= txWaitPeak;
+                            END IF;
+                        ELSE curState <= peakResults;
                         END IF;
-                    
                     WHEN txWaitPeak =>
                         txNow <= '0';
-                        IF txCount=3 AND txDone='1' THEN
-                            txCount <= 0
+                        IF txCount=2 AND txDone='1' THEN
+                            txCount <= "000";
                             curState <= waitNextWordLP;
-                        ELSIF txCount=2 AND txDone='1' 
-                            THEN curState <= peakResults;
                         ELSIF txCount=1 AND txDone='1' 
+                            THEN curState <= peakResults;
+                        ELSIF txCount=0 AND txDone='1' 
                             THEN curState <= peakResults;
                         ELSIF txDone='0'
                             THEN curState <= txWaitPeak;
+                        END IF;
 
                     WHEN listResults =>
-                        txCount <= txCount + 1;
-                        IF txCount <= 1 THEN
-                            txNow <= '1';
-                            dataOut <= LRbyte0;
-                            curState <= txWaitPeak;
-                        ELSIF txCount <= 2 THEN
-                            txNow <= '1';
-                            dataOut <= LRbyte1;
-                            curState <= txWaitPeak;
-                        ELSIF txCount <= 3 THEN
-                            txNow <= '1';
-                            dataOut <= LRbyte2;
-                            curState <= txWaitPeak;
-                        ELSIF txCount <= 4 THEN
-                            txNow <= '1';
-                            dataOut <= LRbyte3;
-                            curState <= txWaitPeak;
-                        ELSIF txCount <= 5 THEN
-                            txNow <= '1';
-                            dataOut <= LRbyte4;
-                            curState <= txWaitPeak;
-                        ELSIF txCount <= 6 THEN
-                            txNow <= '1';
-                            dataOut <= LRbyte5;
-                            curState <= txWaitPeak;
-                        ELSIF txCount <= 7 THEN
-                            txNow <= '1';
-                            dataOut <= LRbyte6;
-                            curState <= txWaitPeak;
-                        ELSIF txDone='0'
-                            THEN curState <= txWaitList;
+                        IF txDone = '1' THEN
+                            txCount <= txCount + 1;
+                            IF txCount = 0 THEN
+                                txNow <= '1';
+                                dataOut <= LRbyte0;
+                                curState <= txWaitList;
+                            ELSIF txCount = 1 THEN
+                                txNow <= '1';
+                                dataOut <= LRbyte1;
+                                curState <= txWaitList;
+                            ELSIF txCount = 2 THEN
+                                txNow <= '1';
+                                dataOut <= LRbyte2;
+                                curState <= txWaitList;
+                            ELSIF txCount = 3 THEN
+                                txNow <= '1';
+                                dataOut <= LRbyte3;
+                                curState <= txWaitList;
+                            ELSIF txCount = 4 THEN
+                                txNow <= '1';
+                                dataOut <= LRbyte4;
+                                curState <= txWaitList;
+                            ELSIF txCount = 5 THEN
+                                txNow <= '1';
+                                dataOut <= LRbyte5;
+                                curState <= txWaitList;
+                            ELSIF txCount = 6 THEN
+                                txNow <= '1';
+                                dataOut <= LRbyte6;
+                                curState <= txWaitList;
+                        ELSE curState <= listResults;
+                        END IF;
                         
                     WHEN txWaitList =>
                         txNow <= '0';
-                        IF txCount=7 AND txDone='1' THEN
-                            txCount <= '000' 
+                        IF txCount=6 AND txDone='1' THEN
+                            txCount <= "000";
                             curState <= waitNextWordLP;
-                        ELSIF txCount=6 AND txDone='1' 
-                            THEN curState <= peakResults;
                         ELSIF txCount=5 AND txDone='1' 
-                            THEN curState <= peakResults;
+                            THEN curState <= listResults;
                         ELSIF txCount=4 AND txDone='1' 
-                            THEN curState <= peakResults;
+                            THEN curState <= listResults;
                         ELSIF txCount=3 AND txDone='1' 
-                            THEN curState <= peakResults;
+                            THEN curState <= listResults;
                         ELSIF txCount=2 AND txDone='1' 
-                            THEN curState <= peakResults;
+                            THEN curState <= listResults;
                         ELSIF txCount=1 AND txDone='1' 
-                            THEN curState <= peakResults;
+                            THEN curState <= listResults;
+                        ELSIF txCount=0 AND txDone='1' 
+                            THEN curState <= listResults;
                         ELSIF txDone='0'
-                            THEN curState <= txWaitPeak;
+                            THEN curState <= txWaitList;
+                        END IF;
             
                 END CASE;
             END IF;
