@@ -31,7 +31,7 @@ end cmdProc;
 ARCHITECTURE FSM of cmdProc is
     TYPE state_type is (INIT, processWordA, processWordAN, processWordANN, processWordANNN, startDataProc, waitDataReady, sendData, waitNextWordLP, processWordLP, peakResults, txWaitPeak, listResults, txWaitList);
 
-    SIGNAL curState: STATE_TYPE := INIT; --converted to curState only to avoid inferred latches from curState and nextState FSM design from TB1 labs
+    SIGNAL curState: STATE_TYPE := INIT; --converted to curState only single FSM to avoid inferred latches from curState and nextState FSM design from TB1 labs
 
     SIGNAL word : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
     SIGNAL a : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
@@ -63,226 +63,226 @@ BEGIN
     LRbyte1 <= dataResultsStore(16 downto 8)
     LRbyte0 <= dataResultsStore(7 downto 0)
     -- splitting and also converting the bcd result to an ascii output
-    MIbyte2 <= '0011' & maxIndexStore(11 downto 8) --hundreds
-    MIbyte1 <= '0011' & maxIndexStore(7 downto 4) --tens
-    MIbyte0 <= '0011' & maxIndexStore(3 downto 0) --units
+    MIbyte2 <= "0011" & maxIndexStore(11 downto 8) --hundreds
+    MIbyte1 <= "0011" & maxIndexStore(7 downto 4) --tens
+    MIbyte0 <= "0011" & maxIndexStore(3 downto 0) --units
 
     -- next state logic
-    combi_nextState: process(curState, ) --need to complete
+    combi_curState: process(clk) --adapted to suit curState only implementation
     BEGIN
-        CASE curState IS
-        -- assign default values to all outputs to avoid inferred latches
-            nextState <= curState; 
-            done <= '0';
-            data <= '0';
-            txNow <= '0';
-            start <= '0';
-            numWords <= '0'
-
-            WHEN INIT =>
-                IF reset='0' THEN nextState <= INIT;
-                ELSIF valid='1' AND oe='0' AND fe='0' THEN
-                    word <= data;
-                    nextState <= processWordA;
-                ELSE nextState <= init;
-                END IF;
-
-            WHEN processWordA =>
-                IF word='01100001' OR word='01000001' THEN 
-                a <= word;
-                done <= '1';
-                nextState <= nextWordA;
-                ELSE nextState <= INIT;
-                END IF;
-            
-            WHEN nextWordA =>
-                IF reset='0' THEN nextState <= INIT;
-                ELSIF valid='1' AND oe='0' AND fe='0' THEN
-                    word <= data;
-                    nextState <= processWordAN;
-                ELSE nextState <= nextWordA;
-                END IF;
-
-            WHEN processWordAN =>
-                IF unsigned(word)>='00110000' AND unsigned(word)<='00111001' THEN
-                n1 <= word;
-                done <= '1';
-                nextState <= nextWordAN;
-                ELSIF resultsStored='1' THEN nextState <= waitNextWordLP;
-                ELSE nextState <= INIT;
-                END IF;
-            
-            WHEN nextWordAN =>
-                IF reset='0' THEN nextState <= INIT;
-                ELSIF valid='1' AND oe='0' AND fe='0' THEN
-                    word <= data;
-                    nextState <= processWordANN;
-                ELSE nextState <= nextWordAN;
-                END IF;
-
-            WHEN processWordANN =>
-                IF unsigned(word)>='00110000' AND unsigned(word)<='00111001' THEN
-                n2 <= word;
-                done <= '1';
-                nextState <= nextWordANN;
-                ELSIF resultsStored='1' THEN nextState <= waitNextWordLP;
-                ELSE nextState <= INIT;
-                END IF;
-            
-            WHEN nextWordANN =>
-                IF reset='0' THEN nextState <= INIT;
-                ELSIF valid='1' AND oe='0' AND fe='0' THEN
-                    word <= data;
-                    nextState <= processWordANNN;
-                ELSE nextState <= nextWordANN;
-                END IF;
-
-            WHEN processWordANNN =>
-                IF unsigned(word)>='00110000' AND unsigned(word)<='00111001' THEN
-                n3 <= word;
-                start <= '1';
-                nextState <= startDataProc;
-                resultsStored <= '0';
-                ELSIF resultsStored='1' THEN nextState <= waitNextWordLP;
-                ELSE nextState <= INIT;
-                END IF;
-            
-            WHEN startDataProc =>
-                start <= '1';
-                nextState <= waitDataReady;
-            
-            WHEN waitDataReady =>
-                IF dataReady='0' THEN nextState <= waitDataReady;
-                ELSE
-                start <= '0'
-                dataOut <= byte;
-                txNow <= '1';
-                nextState <= sendData;
-                END IF;
-            
-            WHEN sendData =>
-                IF txDone='0' THEN nextState <= sendData;
-                ELSIF txDone='1' AND seqDone='1' THEN nextState <= waitNextWordLP;
-                ELSIF txDone='1' AND seqDone='0' THEN
-                nextState <= startDataProc;
-                maxIndexStore <= maxIndex;
-                dataResultsStore <= dataResults;
-                --results stored will bring the flow back to wait for l or p in the event an incomplete ANNN command is input
-                resultsStored <= '1';
-                END IF;
-
-            WHEN waitNextWordLP =>
-                IF reset='0' THEN nextState <= INIT;
-                ELSIF valid='1' AND oe='0' AND fe='0' THEN
-                    word <= data;
-                    nextState <= processWordLP;
-                ELSE nextState <= waitNextWordLP;
-                END IF;
-            
-            WHEN processWordLP =>
-                --statement to check l or L
-                IF word='01001100' OR '01101100' THEN
-                    nextState <= listResults;
-                -- statement to check for p or p
-                ELSIF word='01010000' OR '01110000' THEN
-                    nextState <= peakResults;
-                --statement to check if a or A
-                ELSIF word='01100001' OR word='01000001' THEN
-                    nextState <= nextWordA;
-                ELSE nextState <= processWordLP;
-                END IF;
-            
-            WHEN peakResults =>
-                txCount <= txCount + '001';
-                IF txCount <= '001' THEN
-                    txNow <= '1';
-                    dataOut <= MIbyte0;
-                    nextState <= txWaitPeak;
-                ELSIF txCount <= '010' THEN
-                    txNow <= '1';
-                    dataOut <= MIbyte1;
-                    nextState <= txWaitPeak;
-                ELSIF txCount <= '011' THEN
-                    txNow <= '1';
-                    dataOut <= MIbyte2;
-                    nextState <= txWaitPeak;
-                END IF;
-            
-            WHEN txWaitPeak =>
+        IF rising_edge(clk) THEN
+            IF reset = '0' THEN --synchronous reset conditions
+                curState => INIT;
+                done <= '0';
                 txNow <= '0';
-                IF txCount='011' AND txDone='1' THEN
-                    txCount <= '000' 
-                    nextState <= waitNextWordLP;
-                ELSIF txCount='010' AND txDone='1' 
-                    THEN nextState <= peakResults;
-                ELSIF txCount='001' AND txDone='1' 
-                    THEN nextState <= peakResults;
-                ELSIF txDone='0'
-                    THEN nextState <= txWaitPeak;
+                start <= '0';
+                numWords <= (others => '0');
+            ELSE
 
-            WHEN listResults =>
-                txCount <= txCount + '001';
-                IF txCount <= '001' THEN
-                    txNow <= '1';
-                    dataOut <= LRbyte0;
-                    nextState <= txWaitPeak;
-                ELSIF txCount <= '010' THEN
-                    txNow <= '1';
-                    dataOut <= LRbyte1;
-                    nextState <= txWaitPeak;
-                ELSIF txCount <= '011' THEN
-                    txNow <= '1';
-                    dataOut <= LRbyte2;
-                    nextState <= txWaitPeak;
-                ELSIF txCount <= '100' THEN
-                    txNow <= '1';
-                    dataOut <= LRbyte3;
-                    nextState <= txWaitPeak;
-                ELSIF txCount <= '101' THEN
-                    txNow <= '1';
-                    dataOut <= LRbyte4;
-                    nextState <= txWaitPeak;
-                ELSIF txCount <= '110' THEN
-                    txNow <= '1';
-                    dataOut <= LRbyte5;
-                    nextState <= txWaitPeak;
-                ELSIF txCount <= '111' THEN
-                    txNow <= '1';
-                    dataOut <= LRbyte6;
-                    nextState <= txWaitPeak;
-                ELSIF txDone='0'
-                    THEN nextState <= txWaitList;
-                
-            WHEN txWaitList =>
-                txNow <= '0';
-                IF txCount='111' AND txDone='1' THEN
-                    txCount <= '000' 
-                    nextState <= waitNextWordLP;
-                ELSIF txCount='110' AND txDone='1' 
-                    THEN nextState <= peakResults;
-                ELSIF txCount='101' AND txDone='1' 
-                    THEN nextState <= peakResults;
-                ELSIF txCount='100' AND txDone='1' 
-                    THEN nextState <= peakResults;
-                ELSIF txCount='011' AND txDone='1' 
-                    THEN nextState <= peakResults;
-                ELSIF txCount='010' AND txDone='1' 
-                    THEN nextState <= peakResults;
-                ELSIF txCount='001' AND txDone='1' 
-                    THEN nextState <= peakResults;
-                ELSIF txDone='0'
-                    THEN nextState <= txWaitPeak;
+                CASE curState IS
+                -- assign default values to all outputs to avoid inferred latches
+                    curState <= curState; 
+                    done <= '0';
+                    data <= '0';
+                    txNow <= '0';
+                    start <= '0';
+                    numWords <= '0'
 
-        END CASE;
+                    WHEN INIT =>
+                        IF reset='0' THEN curState <= INIT;
+                        ELSIF valid='1' AND oe='0' AND fe='0' THEN
+                            word <= data;
+                            curState <= processWordA;
+                        ELSE curState <= init;
+                        END IF;
+
+                    WHEN processWordA =>
+                        IF word="01100001" OR word="01000001" THEN 
+                        a <= word;
+                        done <= '1';
+                        curState <= nextWordA;
+                        ELSE curState <= INIT;
+                        END IF;
+                    
+                    WHEN nextWordA =>
+                        IF reset='0' THEN curState <= INIT;
+                        ELSIF valid='1' AND oe='0' AND fe='0' THEN
+                            word <= data;
+                            curState <= processWordAN;
+                        ELSE curState <= nextWordA;
+                        END IF;
+
+                    WHEN processWordAN =>
+                        IF unsigned(word)>="00110000" AND unsigned(word)<="00111001" THEN
+                        n1 <= word;
+                        done <= '1';
+                        curState <= nextWordAN;
+                        ELSIF resultsStored='1' THEN curState <= waitNextWordLP;
+                        ELSE curState <= INIT;
+                        END IF;
+                    
+                    WHEN nextWordAN =>
+                        IF reset='0' THEN curState <= INIT;
+                        ELSIF valid='1' AND oe='0' AND fe='0' THEN
+                            word <= data;
+                            curState <= processWordANN;
+                        ELSE curState <= nextWordAN;
+                        END IF;
+
+                    WHEN processWordANN =>
+                        IF unsigned(word)>="00110000" AND unsigned(word)<="00111001" THEN
+                        n2 <= word;
+                        done <= '1';
+                        curState <= nextWordANN;
+                        ELSIF resultsStored='1' THEN curState <= waitNextWordLP;
+                        ELSE curState <= INIT;
+                        END IF;
+                    
+                    WHEN nextWordANN =>
+                        IF reset='0' THEN curState <= INIT;
+                        ELSIF valid='1' AND oe='0' AND fe='0' THEN
+                            word <= data;
+                            curState <= processWordANNN;
+                        ELSE curState <= nextWordANN;
+                        END IF;
+
+                    WHEN processWordANNN =>
+                        IF unsigned(word)>="00110000" AND unsigned(word)<="00111001" THEN
+                        n3 <= word;
+                        start <= '1';
+                        curState <= startDataProc;
+                        resultsStored <= '0';
+                        ELSIF resultsStored='1' THEN curState <= waitNextWordLP;
+                        ELSE curState <= INIT;
+                        END IF;
+                    
+                    WHEN startDataProc =>
+                        start <= '1';
+                        curState <= waitDataReady;
+                    
+                    WHEN waitDataReady =>
+                        IF dataReady='0' THEN curState <= waitDataReady;
+                        ELSE
+                        start <= '0'
+                        dataOut <= byte;
+                        txNow <= '1';
+                        curState <= sendData;
+                        END IF;
+                    
+                    WHEN sendData =>
+                        IF txDone='0' THEN curState <= sendData;
+                        ELSIF txDone='1' AND seqDone='1' THEN curState <= waitNextWordLP;
+                        ELSIF txDone='1' AND seqDone='0' THEN
+                        curState <= startDataProc;
+                        maxIndexStore <= maxIndex;
+                        dataResultsStore <= dataResults;
+                        --results stored will bring the flow back to wait for l or p in the event an incomplete ANNN command is input
+                        resultsStored <= '1';
+                        END IF;
+
+                    WHEN waitNextWordLP =>
+                        IF reset='0' THEN curState <= INIT;
+                        ELSIF valid='1' AND oe='0' AND fe='0' THEN
+                            word <= data;
+                            curState <= processWordLP;
+                        ELSE curState <= waitNextWordLP;
+                        END IF;
+                    
+                    WHEN processWordLP =>
+                        --statement to check l or L
+                        IF word='01001100' OR '01101100' THEN
+                            curState <= listResults;
+                        -- statement to check for p or p
+                        ELSIF word='01010000' OR '01110000' THEN
+                            curState <= peakResults;
+                        --statement to check if a or A
+                        ELSIF word='01100001' OR word='01000001' THEN
+                            curState <= nextWordA;
+                        ELSE curState <= processWordLP;
+                        END IF;
+                    
+                    WHEN peakResults =>
+                        txCount <= txCount + 1;
+                        IF txCount <= '001' THEN
+                            txNow <= '1';
+                            dataOut <= MIbyte0;
+                            curState <= txWaitPeak;
+                        ELSIF txCount <= '010' THEN
+                            txNow <= '1';
+                            dataOut <= MIbyte1;
+                            curState <= txWaitPeak;
+                        ELSIF txCount <= '011' THEN
+                            txNow <= '1';
+                            dataOut <= MIbyte2;
+                            curState <= txWaitPeak;
+                        END IF;
+                    
+                    WHEN txWaitPeak =>
+                        txNow <= '0';
+                        IF txCount='011' AND txDone='1' THEN
+                            txCount <= '000' 
+                            curState <= waitNextWordLP;
+                        ELSIF txCount='010' AND txDone='1' 
+                            THEN curState <= peakResults;
+                        ELSIF txCount='001' AND txDone='1' 
+                            THEN curState <= peakResults;
+                        ELSIF txDone='0'
+                            THEN curState <= txWaitPeak;
+
+                    WHEN listResults =>
+                        txCount <= txCount + 1;
+                        IF txCount <= '001' THEN
+                            txNow <= '1';
+                            dataOut <= LRbyte0;
+                            curState <= txWaitPeak;
+                        ELSIF txCount <= '010' THEN
+                            txNow <= '1';
+                            dataOut <= LRbyte1;
+                            curState <= txWaitPeak;
+                        ELSIF txCount <= '011' THEN
+                            txNow <= '1';
+                            dataOut <= LRbyte2;
+                            curState <= txWaitPeak;
+                        ELSIF txCount <= '100' THEN
+                            txNow <= '1';
+                            dataOut <= LRbyte3;
+                            curState <= txWaitPeak;
+                        ELSIF txCount <= '101' THEN
+                            txNow <= '1';
+                            dataOut <= LRbyte4;
+                            curState <= txWaitPeak;
+                        ELSIF txCount <= '110' THEN
+                            txNow <= '1';
+                            dataOut <= LRbyte5;
+                            curState <= txWaitPeak;
+                        ELSIF txCount <= '111' THEN
+                            txNow <= '1';
+                            dataOut <= LRbyte6;
+                            curState <= txWaitPeak;
+                        ELSIF txDone='0'
+                            THEN curState <= txWaitList;
+                        
+                    WHEN txWaitList =>
+                        txNow <= '0';
+                        IF txCount='111' AND txDone='1' THEN
+                            txCount <= '000' 
+                            curState <= waitNextWordLP;
+                        ELSIF txCount='110' AND txDone='1' 
+                            THEN curState <= peakResults;
+                        ELSIF txCount='101' AND txDone='1' 
+                            THEN curState <= peakResults;
+                        ELSIF txCount='100' AND txDone='1' 
+                            THEN curState <= peakResults;
+                        ELSIF txCount='011' AND txDone='1' 
+                            THEN curState <= peakResults;
+                        ELSIF txCount='010' AND txDone='1' 
+                            THEN curState <= peakResults;
+                        ELSIF txCount='001' AND txDone='1' 
+                            THEN curState <= peakResults;
+                        ELSIF txDone='0'
+                            THEN curState <= txWaitPeak;
+
+                END CASE;
     END PROCESS;
 
-    -- State Register
-    seq_state: PROCESS (clk, reset)
-    BEGIN
-        IF reset = '0' THEN
-            curState <= INIT;
-        ELSIF clk'event AND clk='1' THEN
-            curState <= nextState;
-        END IF;
-    END PROCESS;
 END cmdProc;
