@@ -29,26 +29,46 @@ entity cmdProc is
 end cmdProc;
 
 ARCHITECTURE FSM of cmdProc is
-    TYPE state_type is (INIT, loadWord, );
-    SIGNAL curState, nextState: STATE_TYPE;
+    TYPE state_type is (INIT, processWordA, processWordAN, processWordANN, processWordANNN, startDataProc, waitDataReady, sendData, waitNextWordLP, processWordLP, peakResults, txWaitPeak, listResults, txWaitList);
+
+    SIGNAL curState: STATE_TYPE := INIT; --converted to curState only to avoid inferred latches from curState and nextState FSM design from TB1 labs
+
+    SIGNAL word : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL a : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL n1 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL n2 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL n3 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0'); --init all ascii signals
+
+    SIGNAL maxIndexStore : STD_LOGIC_VECTOR(55 downto 0) := (others => '0');
+    SIGNAL dataResultsStore : STD_LOGIC_VECTOR(55 downto 0) := (others => '0'); --init data stores
+
+    SIGNAL resultsStored : STD_LOGIC := '0';
+    SIGNAL txCount : unsigned(2 downto 0) := "000"; --init "counters" (resultsStored counts as a counter right?)
+
+    SIGNAL MIbyte0, MIbyte1, MIbyte2 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SINGAL LRbyte0, LRbyte1, LRbyte2, LRbyte3, LRbyte4, LRbyte5, LRbyte6 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+
+    
+    
+
 BEGIN
     -- concurrent calculations
     numWords <= n1(3 downto 0) & n2(3 downto 0) & n3(3 downto 0)
     -- splitting data results into 8 byte chunks for tx
-    DRbyte6 <= dataResultsStore(55 downto 48)
-    DRbyte5 <= dataResultsStore(47 downto 40)
-    DRbyte4 <= dataResultsStore(39 downto 32)
-    DRbyte3 <= dataResultsStore(31 downto 24)
-    DRbyte2 <= dataResultsStore(23 downto 16)
-    DRbyte1 <= dataResultsStore(16 downto 8)
-    DRbyte0 <= dataResultsStore(7 downto 0)
+    LRbyte6 <= dataResultsStore(55 downto 48)
+    LRbyte5 <= dataResultsStore(47 downto 40)
+    LRbyte4 <= dataResultsStore(39 downto 32)
+    LRbyte3 <= dataResultsStore(31 downto 24)
+    LRbyte2 <= dataResultsStore(23 downto 16)
+    LRbyte1 <= dataResultsStore(16 downto 8)
+    LRbyte0 <= dataResultsStore(7 downto 0)
     -- splitting and also converting the bcd result to an ascii output
     MIbyte2 <= '0011' & maxIndexStore(11 downto 8) --hundreds
     MIbyte1 <= '0011' & maxIndexStore(7 downto 4) --tens
     MIbyte0 <= '0011' & maxIndexStore(3 downto 0) --units
 
     -- next state logic
-    combi_nextState: process(curState, processWordA, processWordAN, processWordANN, processWordANNN, startDataProc, waitDataReady, sendData, waitNextWordLP, processWordLP, peakResults, txWaitPeak, listResults, txWaitList) --need to complete
+    combi_nextState: process(curState, ) --need to complete
     BEGIN
         CASE curState IS
         -- assign default values to all outputs to avoid inferred latches
@@ -253,46 +273,7 @@ BEGIN
                 ELSIF txDone='0'
                     THEN nextState <= txWaitPeak;
 
-                
-
-            
-
-
-
-
-        
-
-
-            
-
-
-
-
-            
-
-
-
-            
-
-            
-
-            
-            
-
-            WHEN THIRD =>
-                IF x='0' THEN nextState <= INIT;
-                ELSE nextState <= FIRST;
-                END IF;
         END CASE;
-    END PROCESS;
-
-    -- Output Logic
-    combi_out: PROCESS(curState, x)
-    BEGIN
-        y <= '0';
-        IF curState = THIRD AND x='0' THEN
-            y <= '1';
-        END IF;
     END PROCESS;
 
     -- State Register
@@ -304,4 +285,4 @@ BEGIN
             curState <= nextState;
         END IF;
     END PROCESS;
-END arch_mealy;
+END cmdProc;
