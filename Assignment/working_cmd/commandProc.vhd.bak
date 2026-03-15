@@ -1,7 +1,9 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-
+library UNISIM;
+use UNISIM.VCOMPONENTS.ALL;
+use UNISIM.VPKG.ALL;
 
 entity cmdProc is
     Port ( valid : in STD_LOGIC;
@@ -23,7 +25,7 @@ entity cmdProc is
            numWords : out STD_LOGIC_VECTOR (11 downto 0);
  
            clk : in STD_LOGIC;
-           reset : in STD_LOGIC);
+           reset : in STD_LOGIC;
 end cmdProc;
 
 ARCHITECTURE FSM of cmdProc is
