@@ -14,7 +14,7 @@ entity cmdProc is
 
            txDone : in STD_LOGIC;
            dataOut : out STD_LOGIC_VECTOR (7 downto 0);
-           txNow : out STD_LOGIC:
+           txNow : out STD_LOGIC;
 
            dataReady : in STD_LOGIC;
            byte : in STD_LOGIC_VECTOR (7 downto 0);
@@ -25,7 +25,7 @@ entity cmdProc is
            numWords : out STD_LOGIC_VECTOR (11 downto 0);
  
            clk : in STD_LOGIC;
-           reset : STD_LOGIC;
+           reset : in STD_LOGIC;
 end cmdProc;
 
 ARCHITECTURE FSM of cmdProc is
@@ -40,39 +40,39 @@ ARCHITECTURE FSM of cmdProc is
     SIGNAL n3 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0'); --init all ascii signals
 
     SIGNAL maxIndexStore : STD_LOGIC_VECTOR(55 downto 0) := (others => '0');
-    SIGNAL dataResultsStore : STD_LOGIC_VECTOR(55 downto 0) := (others => '0'); --init data stores
+    SIGNAL dataResultsStore : STD_LOGIC_VECTOR(11 downto 0) := (others => '0'); --init data stores
 
     SIGNAL resultsStored : STD_LOGIC := '0';
     SIGNAL txCount : unsigned(2 downto 0) := "000"; --init "counters" (resultsStored counts as a counter right?)
 
     SIGNAL MIbyte0, MIbyte1, MIbyte2 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
-    SINGAL LRbyte0, LRbyte1, LRbyte2, LRbyte3, LRbyte4, LRbyte5, LRbyte6 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
+    SIGNAL LRbyte0, LRbyte1, LRbyte2, LRbyte3, LRbyte4, LRbyte5, LRbyte6 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
 
     
     
 
 BEGIN
     -- concurrent calculations
-    numWords <= n1(3 downto 0) & n2(3 downto 0) & n3(3 downto 0)
+    numWords <= n1(3 downto 0) & n2(3 downto 0) & n3(3 downto 0);
     -- splitting data results into 8 byte chunks for tx
-    LRbyte6 <= dataResultsStore(55 downto 48)
-    LRbyte5 <= dataResultsStore(47 downto 40)
-    LRbyte4 <= dataResultsStore(39 downto 32)
-    LRbyte3 <= dataResultsStore(31 downto 24)
-    LRbyte2 <= dataResultsStore(23 downto 16)
-    LRbyte1 <= dataResultsStore(16 downto 8)
-    LRbyte0 <= dataResultsStore(7 downto 0)
+    LRbyte6 <= dataResultsStore(55 downto 48);
+    LRbyte5 <= dataResultsStore(47 downto 40);
+    LRbyte4 <= dataResultsStore(39 downto 32);
+    LRbyte3 <= dataResultsStore(31 downto 24);
+    LRbyte2 <= dataResultsStore(23 downto 16);
+    LRbyte1 <= dataResultsStore(16 downto 8);
+    LRbyte0 <= dataResultsStore(7 downto 0);
     -- splitting and also converting the bcd result to an ascii output
-    MIbyte2 <= "0011" & maxIndexStore(11 downto 8) --hundreds
-    MIbyte1 <= "0011" & maxIndexStore(7 downto 4) --tens
-    MIbyte0 <= "0011" & maxIndexStore(3 downto 0) --units
+    MIbyte2 <= "0011" & maxIndexStore(11 downto 8); --hundreds
+    MIbyte1 <= "0011" & maxIndexStore(7 downto 4); --tens
+    MIbyte0 <= "0011" & maxIndexStore(3 downto 0); --units
 
     -- next state logic
     combi_curState: process(clk) --adapted to suit curState only implementation
     BEGIN
         IF rising_edge(clk) THEN
             IF reset = '0' THEN --synchronous reset conditions
-                curState => INIT;
+                curState <= INIT;
                 done <= '0';
                 txNow <= '0';
                 start <= '0';
@@ -203,15 +203,15 @@ BEGIN
                     
                     WHEN peakResults =>
                         txCount <= txCount + 1;
-                        IF txCount <= '001' THEN
+                        IF txCount <= 1 THEN
                             txNow <= '1';
                             dataOut <= MIbyte0;
                             curState <= txWaitPeak;
-                        ELSIF txCount <= '010' THEN
+                        ELSIF txCount <= 2 THEN
                             txNow <= '1';
                             dataOut <= MIbyte1;
                             curState <= txWaitPeak;
-                        ELSIF txCount <= '011' THEN
+                        ELSIF txCount <= 3 THEN
                             txNow <= '1';
                             dataOut <= MIbyte2;
                             curState <= txWaitPeak;
@@ -219,43 +219,43 @@ BEGIN
                     
                     WHEN txWaitPeak =>
                         txNow <= '0';
-                        IF txCount='011' AND txDone='1' THEN
-                            txCount <= '000' 
+                        IF txCount=3 AND txDone='1' THEN
+                            txCount <= 0
                             curState <= waitNextWordLP;
-                        ELSIF txCount='010' AND txDone='1' 
+                        ELSIF txCount=2 AND txDone='1' 
                             THEN curState <= peakResults;
-                        ELSIF txCount='001' AND txDone='1' 
+                        ELSIF txCount=1 AND txDone='1' 
                             THEN curState <= peakResults;
                         ELSIF txDone='0'
                             THEN curState <= txWaitPeak;
 
                     WHEN listResults =>
                         txCount <= txCount + 1;
-                        IF txCount <= '001' THEN
+                        IF txCount <= 1 THEN
                             txNow <= '1';
                             dataOut <= LRbyte0;
                             curState <= txWaitPeak;
-                        ELSIF txCount <= '010' THEN
+                        ELSIF txCount <= 2 THEN
                             txNow <= '1';
                             dataOut <= LRbyte1;
                             curState <= txWaitPeak;
-                        ELSIF txCount <= '011' THEN
+                        ELSIF txCount <= 3 THEN
                             txNow <= '1';
                             dataOut <= LRbyte2;
                             curState <= txWaitPeak;
-                        ELSIF txCount <= '100' THEN
+                        ELSIF txCount <= 4 THEN
                             txNow <= '1';
                             dataOut <= LRbyte3;
                             curState <= txWaitPeak;
-                        ELSIF txCount <= '101' THEN
+                        ELSIF txCount <= 5 THEN
                             txNow <= '1';
                             dataOut <= LRbyte4;
                             curState <= txWaitPeak;
-                        ELSIF txCount <= '110' THEN
+                        ELSIF txCount <= 6 THEN
                             txNow <= '1';
                             dataOut <= LRbyte5;
                             curState <= txWaitPeak;
-                        ELSIF txCount <= '111' THEN
+                        ELSIF txCount <= 7 THEN
                             txNow <= '1';
                             dataOut <= LRbyte6;
                             curState <= txWaitPeak;
@@ -264,25 +264,27 @@ BEGIN
                         
                     WHEN txWaitList =>
                         txNow <= '0';
-                        IF txCount='111' AND txDone='1' THEN
+                        IF txCount=7 AND txDone='1' THEN
                             txCount <= '000' 
                             curState <= waitNextWordLP;
-                        ELSIF txCount='110' AND txDone='1' 
+                        ELSIF txCount=6 AND txDone='1' 
                             THEN curState <= peakResults;
-                        ELSIF txCount='101' AND txDone='1' 
+                        ELSIF txCount=5 AND txDone='1' 
                             THEN curState <= peakResults;
-                        ELSIF txCount='100' AND txDone='1' 
+                        ELSIF txCount=4 AND txDone='1' 
                             THEN curState <= peakResults;
-                        ELSIF txCount='011' AND txDone='1' 
+                        ELSIF txCount=3 AND txDone='1' 
                             THEN curState <= peakResults;
-                        ELSIF txCount='010' AND txDone='1' 
+                        ELSIF txCount=2 AND txDone='1' 
                             THEN curState <= peakResults;
-                        ELSIF txCount='001' AND txDone='1' 
+                        ELSIF txCount=1 AND txDone='1' 
                             THEN curState <= peakResults;
                         ELSIF txDone='0'
                             THEN curState <= txWaitPeak;
-
+            
                 END CASE;
+            END IF;
+        END IF;
     END PROCESS;
 
 END cmdProc;
