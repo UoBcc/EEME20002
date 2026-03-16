@@ -1,26 +1,27 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.common_pack.all;
 
 
 entity cmdProc is
-    Port ( valid : in STD_LOGIC;
-           oe : in STD_LOGIC;
-           fe : in STD_LOGIC;
-           data : in STD_LOGIC_VECTOR (7 downto 0);
-           done : out STD_LOGIC;
+    Port ( rxnow : in STD_LOGIC;
+           ovErr : in STD_LOGIC;
+           framErr : in STD_LOGIC;
+           rxData : in STD_LOGIC_VECTOR (7 downto 0);
+           rxdone : out STD_LOGIC;
 
-           txDone : in STD_LOGIC;
-           dataOut : out STD_LOGIC_VECTOR (7 downto 0);
-           txNow : out STD_LOGIC;
+           txdone : in STD_LOGIC;
+           txData : out STD_LOGIC_VECTOR (7 downto 0);
+           txnow : out STD_LOGIC;
 
            dataReady : in STD_LOGIC;
            byte : in STD_LOGIC_VECTOR (7 downto 0);
-           maxIndex : in STD_LOGIC_VECTOR (11 downto 0);
-           dataResults : in STD_LOGIC_VECTOR (55 downto 0);
+           maxIndex : in BCD_ARRAY_TYPE (2 downto 0);
+           dataResults : in CHAR_ARRAY_TYPE (0 to RESULT_BYTE_NUM-1);
            seqDone : in STD_LOGIC;
            start : out  STD_LOGIC;
-           numWords : out STD_LOGIC_VECTOR (11 downto 0);
+           numWords_bcd : out BCD_ARRAY_TYPE (2 downto 0);
  
            clk : in STD_LOGIC;
            reset : in STD_LOGIC);
@@ -37,8 +38,8 @@ ARCHITECTURE FSM of cmdProc is
     SIGNAL n2 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0');
     SIGNAL n3 : STD_LOGIC_VECTOR(7 downto 0) := (others => '0'); --init all ascii signals
 
-    SIGNAL maxIndexStore : STD_LOGIC_VECTOR(11 downto 0) := (others => '0');
-    SIGNAL dataResultsStore : STD_LOGIC_VECTOR(55 downto 0) := (others => '0'); --init data stores
+    SIGNAL maxIndexStore : BCD_ARRAY_TYPE(2 downto 0) := (others => (others => '0'));
+    SIGNAL dataResultsStore : CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1) := (others => (others => '0')); --init rxData stores
 
     SIGNAL resultsStored : STD_LOGIC := '0';
     SIGNAL txCount : unsigned(2 downto 0) := "000"; --init "counters" (resultsStored counts as a counter right?)
@@ -51,19 +52,19 @@ ARCHITECTURE FSM of cmdProc is
 
 BEGIN
     -- concurrent calculations
-    numWords <= n1(3 downto 0) & n2(3 downto 0) & n3(3 downto 0);
-    -- splitting data results into 8 byte chunks for tx
-    LRbyte6 <= dataResultsStore(55 downto 48);
-    LRbyte5 <= dataResultsStore(47 downto 40);
-    LRbyte4 <= dataResultsStore(39 downto 32);
-    LRbyte3 <= dataResultsStore(31 downto 24);
-    LRbyte2 <= dataResultsStore(23 downto 16);
-    LRbyte1 <= dataResultsStore(15 downto 8);
-    LRbyte0 <= dataResultsStore(7 downto 0);
+    numWords_bcd <= n1(3 downto 0) & n2(3 downto 0) & n3(3 downto 0);
+    -- splitting rxData results into 8 byte chunks for tx
+    LRbyte6 <= dataResultsStore(0);
+    LRbyte5 <= dataResultsStore(1);
+    LRbyte4 <= dataResultsStore(2);
+    LRbyte3 <= dataResultsStore(3);
+    LRbyte2 <= dataResultsStore(4);
+    LRbyte1 <= dataResultsStore(5);
+    LRbyte0 <= dataResultsStore(6);
     -- splitting and also converting the bcd result to an ascii output
-    MIbyte2 <= "0011" & maxIndexStore(11 downto 8); --hundreds
-    MIbyte1 <= "0011" & maxIndexStore(7 downto 4); --tens
-    MIbyte0 <= "0011" & maxIndexStore(3 downto 0); --units
+    MIbyte2 <= "0011" & maxIndexStore(2); --hundreds
+    MIbyte1 <= "0011" & maxIndexStore(1); --tens
+    MIbyte0 <= "0011" & maxIndexStore(0); --units
 
     -- next state logic
     combi_curState: process(clk) --adapted to suit curState only implementation
@@ -71,14 +72,14 @@ BEGIN
         IF rising_edge(clk) THEN
             IF reset = '0' THEN --synchronous reset conditions
                 curState <= INIT;
-                done <= '0';
-                txNow <= '0';
+                rxdone <= '0';
+                txnow <= '0';
                 start <= '0';
-                numWords <= (others => '0');
+                numWords_bcd <= (others => '0');
             ELSE
                 curState <= curState; 
-                done <= '0';
-                txNow <= '0';
+                rxdone <= '0';
+                txnow <= '0';
                 start <= '0';
 
                 CASE curState IS
@@ -86,8 +87,8 @@ BEGIN
 
                     WHEN INIT =>
                         IF reset='0' THEN curState <= INIT;
-                        ELSIF valid='1' AND oe='0' AND fe='0' THEN
-                            word <= data;
+                        ELSIF rxnow='1' AND ovErr='0' AND framErr='0' THEN
+                            word <= rxData;
                             curState <= processWordA;
                         ELSE curState <= init;
                         END IF;
@@ -95,15 +96,15 @@ BEGIN
                     WHEN processWordA =>
                         IF word="01100001" OR word="01000001" THEN 
                         a <= word;
-                        done <= '1';
+                        rxdone <= '1';
                         curState <= nextWordA;
                         ELSE curState <= INIT;
                         END IF;
                     
                     WHEN nextWordA =>
                         IF reset='0' THEN curState <= INIT;
-                        ELSIF valid='1' AND oe='0' AND fe='0' THEN
-                            word <= data;
+                        ELSIF rxnow='1' AND ovErr='0' AND framErr='0' THEN
+                            word <= rxData;
                             curState <= processWordAN;
                         ELSE curState <= nextWordA;
                         END IF;
@@ -111,7 +112,7 @@ BEGIN
                     WHEN processWordAN =>
                         IF unsigned(word)>="00110000" AND unsigned(word)<="00111001" THEN
                         n1 <= word;
-                        done <= '1';
+                        rxdone <= '1';
                         curState <= nextWordAN;
                         ELSIF resultsStored='1' THEN curState <= waitNextWordLP;
                         ELSE curState <= INIT;
@@ -119,8 +120,8 @@ BEGIN
                     
                     WHEN nextWordAN =>
                         IF reset='0' THEN curState <= INIT;
-                        ELSIF valid='1' AND oe='0' AND fe='0' THEN
-                            word <= data;
+                        ELSIF rxnow='1' AND ovErr='0' AND framErr='0' THEN
+                            word <= rxData;
                             curState <= processWordANN;
                         ELSE curState <= nextWordAN;
                         END IF;
@@ -128,7 +129,7 @@ BEGIN
                     WHEN processWordANN =>
                         IF unsigned(word)>="00110000" AND unsigned(word)<="00111001" THEN
                         n2 <= word;
-                        done <= '1';
+                        rxdone <= '1';
                         curState <= nextWordANN;
                         ELSIF resultsStored='1' THEN curState <= waitNextWordLP;
                         ELSE curState <= INIT;
@@ -136,8 +137,8 @@ BEGIN
                     
                     WHEN nextWordANN =>
                         IF reset='0' THEN curState <= INIT;
-                        ELSIF valid='1' AND oe='0' AND fe='0' THEN
-                            word <= data;
+                        ELSIF rxnow='1' AND ovErr='0' AND framErr='0' THEN
+                            word <= rxData;
                             curState <= processWordANNN;
                         ELSE curState <= nextWordANN;
                         END IF;
@@ -160,15 +161,15 @@ BEGIN
                         IF dataReady='0' THEN curState <= waitDataReady;
                         ELSE
                         start <= '0';
-                        dataOut <= byte;
-                        txNow <= '1';
+                        txData <= byte;
+                        txnow <= '1';
                         curState <= sendData;
                         END IF;
                     
                     WHEN sendData =>
-                        IF txDone='0' THEN curState <= sendData;
-                        ELSIF txDone='1' AND seqDone='1' THEN curState <= waitNextWordLP;
-                        ELSIF txDone='1' AND seqDone='0' THEN
+                        IF txdone='0' THEN curState <= sendData;
+                        ELSIF txdone='1' AND seqDone='1' THEN curState <= waitNextWordLP;
+                        ELSIF txdone='1' AND seqDone='0' THEN
                         curState <= startDataProc;
                         maxIndexStore <= maxIndex;
                         dataResultsStore <= dataResults;
@@ -178,8 +179,8 @@ BEGIN
 
                     WHEN waitNextWordLP =>
                         IF reset='0' THEN curState <= INIT;
-                        ELSIF valid='1' AND oe='0' AND fe='0' THEN
-                            word <= data;
+                        ELSIF rxnow='1' AND ovErr='0' AND framErr='0' THEN
+                            word <= rxData;
                             curState <= processWordLP;
                         ELSE curState <= waitNextWordLP;
                         END IF;
@@ -198,89 +199,89 @@ BEGIN
                         END IF;
                     
                     WHEN peakResults =>
-                        IF txDone='1' THEN --had to wrap the peak/listresults cases in a txdone check to make sure the flow doesn't fall through due to the slow speed of the UART
+                        IF txdone='1' THEN --had to wrap the peak/listresults cases in a txdone check to make sure the flow doesn't fall through due to the slow speed of the UART
                             txCount <= txCount + 1;
                             IF txCount = 0 THEN
-                                txNow <= '1';
-                                dataOut <= MIbyte0;
+                                txnow <= '1';
+                                txData <= MIbyte0;
                                 curState <= txWaitPeak;
                             ELSIF txCount = 1 THEN
-                                txNow <= '1';
-                                dataOut <= MIbyte1;
+                                txnow <= '1';
+                                txData <= MIbyte1;
                                 curState <= txWaitPeak;
                             ELSIF txCount = 2 THEN
-                                txNow <= '1';
-                                dataOut <= MIbyte2;
+                                txnow <= '1';
+                                txData <= MIbyte2;
                                 curState <= txWaitPeak;
                             END IF;
                         ELSE curState <= peakResults;
                         END IF;
                     WHEN txWaitPeak =>
-                        txNow <= '0';
-                        IF txCount=2 AND txDone='1' THEN
+                        txnow <= '0';
+                        IF txCount=2 AND txdone='1' THEN
                             txCount <= "000";
                             curState <= waitNextWordLP;
-                        ELSIF txCount=1 AND txDone='1' 
+                        ELSIF txCount=1 AND txdone='1' 
                             THEN curState <= peakResults;
-                        ELSIF txCount=0 AND txDone='1' 
+                        ELSIF txCount=0 AND txdone='1' 
                             THEN curState <= peakResults;
-                        ELSIF txDone='0'
+                        ELSIF txdone='0'
                             THEN curState <= txWaitPeak;
                         END IF;
 
                     WHEN listResults =>
-                        IF txDone = '1' THEN
+                        IF txdone = '1' THEN
                             txCount <= txCount + 1;
                             IF txCount = 0 THEN
-                                txNow <= '1';
-                                dataOut <= LRbyte0;
+                                txnow <= '1';
+                                txData <= LRbyte0;
                                 curState <= txWaitList;
                             ELSIF txCount = 1 THEN
-                                txNow <= '1';
-                                dataOut <= LRbyte1;
+                                txnow <= '1';
+                                txData <= LRbyte1;
                                 curState <= txWaitList;
                             ELSIF txCount = 2 THEN
-                                txNow <= '1';
-                                dataOut <= LRbyte2;
+                                txnow <= '1';
+                                txData <= LRbyte2;
                                 curState <= txWaitList;
                             ELSIF txCount = 3 THEN
-                                txNow <= '1';
-                                dataOut <= LRbyte3;
+                                txnow <= '1';
+                                txData <= LRbyte3;
                                 curState <= txWaitList;
                             ELSIF txCount = 4 THEN
-                                txNow <= '1';
-                                dataOut <= LRbyte4;
+                                txnow <= '1';
+                                txData <= LRbyte4;
                                 curState <= txWaitList;
                             ELSIF txCount = 5 THEN
-                                txNow <= '1';
-                                dataOut <= LRbyte5;
+                                txnow <= '1';
+                                txData <= LRbyte5;
                                 curState <= txWaitList;
                             ELSIF txCount = 6 THEN
-                                txNow <= '1';
-                                dataOut <= LRbyte6;
+                                txnow <= '1';
+                                txData <= LRbyte6;
                                 curState <= txWaitList;
 			    END IF;
                         ELSE curState <= listResults;
                         END IF;
                         
                     WHEN txWaitList =>
-                        txNow <= '0';
-                        IF txCount=6 AND txDone='1' THEN
+                        txnow <= '0';
+                        IF txCount=6 AND txdone='1' THEN
                             txCount <= "000";
                             curState <= waitNextWordLP;
-                        ELSIF txCount=5 AND txDone='1' 
+                        ELSIF txCount=5 AND txdone='1' 
                             THEN curState <= listResults;
-                        ELSIF txCount=4 AND txDone='1' 
+                        ELSIF txCount=4 AND txdone='1' 
                             THEN curState <= listResults;
-                        ELSIF txCount=3 AND txDone='1' 
+                        ELSIF txCount=3 AND txdone='1' 
                             THEN curState <= listResults;
-                        ELSIF txCount=2 AND txDone='1' 
+                        ELSIF txCount=2 AND txdone='1' 
                             THEN curState <= listResults;
-                        ELSIF txCount=1 AND txDone='1' 
+                        ELSIF txCount=1 AND txdone='1' 
                             THEN curState <= listResults;
-                        ELSIF txCount=0 AND txDone='1' 
+                        ELSIF txCount=0 AND txdone='1' 
                             THEN curState <= listResults;
-                        ELSIF txDone='0'
+                        ELSIF txdone='0'
                             THEN curState <= txWaitList;
                         END IF;
             
