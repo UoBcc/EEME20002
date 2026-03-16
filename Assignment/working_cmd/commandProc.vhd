@@ -28,22 +28,35 @@ end cmdProc;
 
 architecture behavioural of cmdProc is
     type state_type is (
-        INIT, START_DATA_PROCESSING, WAIT_FOR_DATA_READY, SEND_DATA, 
-        D1, D2, D3, LIST, PEAK, TX_WAIT
+        INIT, START_DATA_PROCESSING, WAIT_FOR_DATA_READY, 
+        D1, D2, D3, LIST, PEAK, SEND_LIST, SEND_PEAK, TX_WAIT
     );
     signal curr_state, next_state: state_type;
     signal bcd_reg: std_logic_vector(11 downto 0);
-    signal byte_counter: integer range 0 to 7 := 0; 
+    signal byte_counter: integer range 0 to 7 := 0;
+    signal isPeak: std_logic;
+    signal isList: std_logic;
+    signal maxIndex_hundreds: std_logic_vector(7 downto 0);
+    signal maxIndex_tens: std_logic_vector(7 downto 0);
+    signal maxIndex_ones: std_logic_vector(7 downto 0);
 
 begin
 
+    maxIndex_hundreds <= "0011" & maxIndex(11 downto 8);
+    maxIndex_tens <= "0011" & maxIndex(7 downto 4);
+    maxIndex_ones <= "0011" & maxIndex(3 downto 0);
+
     state_register: process(clk, reset)
     begin
+
         if reset = '1' then
             curr_state <= INIT;
             bcd_reg <= (others => '0');
             byte_counter <= 0;
+            isPeak <= '0';
+            isList <= '0';
         elsif rising_edge(clk) then
+
             curr_state <= next_state;
 
             if valid = '1' and oe = '0' and fe = '0' then
@@ -55,11 +68,26 @@ begin
                 end case;
             end if;
 
-            if curr_state = TX_WAIT and txDone = '1' then
-                if byte_counter < 6 then
-                    byte_counter <= byte_counter + 1;
-                else
-                    byte_counter <= 0;
+            if curr_state = INIT then
+                isPeak <= '0';
+                isList <= '0';
+            elsif curr_state = PEAK then
+                isPeak <= '1';
+            elsif curr_state = LIST then
+                isList <= '1';
+            elsif curr_state = TX_WAIT then
+                if isPeak = '1' then
+                    if byte_counter < 2 then
+                        byte_counter <= byte_counter + 1;
+                    elsif byte_counter = 2 then
+                        byte_counter <= 0;
+                    end if;
+                elsif isList = '1' then
+                    if byte_counter < 6 then
+                        byte_counter <= byte_counter + 1;
+                    elsif byte_counter = 6 then
+                        byte_counter <= 0;
+                    end if;
                 end if;
             end if;
         end if;
@@ -109,10 +137,25 @@ begin
                     next_state <= INIT;
                 end if;
 
-            when PEAK | LIST =>
-                next_state <= SEND_DATA;
+            when PEAK =>
+                next_state <= SEND_PEAK;
 
-            when SEND_DATA =>
+            when LIST =>
+                next_state <= SEND_LIST;
+            
+            when SEND_PEAK =>
+                if txDone = '1' then
+                    txNow <= '1';
+                    case byte_counter is
+                        when 0 => dataOut <= maxIndex_hundreds;
+                        when 1 => dataOut <= maxIndex_tens;
+                        when 2 => dataOut <= maxIndex_ones;
+                        when others => dataOut <= x"00";
+                    end case;
+                    next_state <= TX_WAIT;
+                end if;
+
+            when SEND_LIST =>
                 if txDone = '1' then
                     txNow <= '1';
                     case byte_counter is
@@ -130,10 +173,20 @@ begin
 
             when TX_WAIT =>
                 if txDone = '1' then
-                    if byte_counter = 0 then
-                        next_state <= INIT;
+                    if isPeak = '1' then
+                        if byte_counter < 2 then
+                            next_state <= SEND_PEAK;
+                        else
+                            next_state <= INIT;
+                        end if;
+                    elsif isList = '1' then
+                        if byte_counter < 6 then
+                            next_state <= SEND_LIST;
+                        else
+                            next_state <= INIT;
+                        end if;
                     else
-                        next_state <= SEND_DATA;
+                        next_state <= INIT;
                     end if;
                 end if;
 
