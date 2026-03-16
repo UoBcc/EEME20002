@@ -27,7 +27,7 @@ entity cmdProc is
 end cmdProc;
 
 ARCHITECTURE FSM of cmdProc is
-    TYPE state_type is (INIT, processWordA, processWordAN, processWordANN, processWordANNN, startDataProc, waitDataReady, sendData, waitNextWordLP, processWordLP, peakResults, txWaitPeak, listResults, txWaitList);
+    TYPE state_type is (INIT, nextWordA, nextWordAN, nextWordANN, processWordA, processWordAN, processWordANN, processWordANNN, startDataProc, waitDataReady, sendData, waitNextWordLP, processWordLP, peakResults, txWaitPeak, listResults, txWaitList);
 
     SIGNAL curState: STATE_TYPE := INIT; --converted to curState only single FSM to avoid inferred latches from curState and nextState FSM design from TB1 labs
 
@@ -58,7 +58,7 @@ BEGIN
     LRbyte4 <= dataResultsStore(39 downto 32);
     LRbyte3 <= dataResultsStore(31 downto 24);
     LRbyte2 <= dataResultsStore(23 downto 16);
-    LRbyte1 <= dataResultsStore(16 downto 8);
+    LRbyte1 <= dataResultsStore(15 downto 8);
     LRbyte0 <= dataResultsStore(7 downto 0);
     -- splitting and also converting the bcd result to an ascii output
     MIbyte2 <= "0011" & maxIndexStore(11 downto 8); --hundreds
@@ -76,15 +76,13 @@ BEGIN
                 start <= '0';
                 numWords <= (others => '0');
             ELSE
+                curState <= curState; 
+                done <= '0';
+                txNow <= '0';
+                start <= '0';
 
                 CASE curState IS
                 -- assign default values to all outputs to avoid inferred latches
-                    curState <= curState; 
-                    done <= '0';
-                    data <= '0';
-                    txNow <= '0';
-                    start <= '0';
-                    numWords <= '0'
 
                     WHEN INIT =>
                         IF reset='0' THEN curState <= INIT;
@@ -188,13 +186,13 @@ BEGIN
                     
                     WHEN processWordLP =>
                         --statement to check l or L
-                        IF word='01001100' OR '01101100' THEN
+                        IF word="01001100" OR word="01101100" THEN
                             curState <= listResults;
                         -- statement to check for p or p
-                        ELSIF word='01010000' OR '01110000' THEN
+                        ELSIF word="01010000" OR word="01110000" THEN
                             curState <= peakResults;
                         --statement to check if a or A
-                        ELSIF word='01100001' OR word='01000001' THEN
+                        ELSIF word="01100001" OR word="01000001" THEN
                             curState <= nextWordA;
                         ELSE curState <= processWordLP;
                         END IF;
@@ -261,6 +259,7 @@ BEGIN
                                 txNow <= '1';
                                 dataOut <= LRbyte6;
                                 curState <= txWaitList;
+			    END IF;
                         ELSE curState <= listResults;
                         END IF;
                         
@@ -290,4 +289,4 @@ BEGIN
         END IF;
     END PROCESS;
 
-END cmdProc;
+END ARCHITECTURE;
