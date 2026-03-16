@@ -52,7 +52,9 @@ ARCHITECTURE FSM of cmdProc is
 
 BEGIN
     -- concurrent calculations
-    numWords_bcd <= n1(3 downto 0) & n2(3 downto 0) & n3(3 downto 0);
+    numWords_bcd(2) <= n1(3 downto 0);
+    numWords_bcd(1) <= n2(3 downto 0);
+    numWords_bcd(0) <= n3(3 downto 0);
     -- splitting rxData results into 8 byte chunks for tx
     LRbyte6 <= dataResultsStore(0);
     LRbyte5 <= dataResultsStore(1);
@@ -70,12 +72,11 @@ BEGIN
     combi_curState: process(clk) --adapted to suit curState only implementation
     BEGIN
         IF rising_edge(clk) THEN
-            IF reset = '0' THEN --synchronous reset conditions
+            IF reset = '1' THEN --synchronous reset conditions
                 curState <= INIT;
                 rxdone <= '0';
                 txnow <= '0';
                 start <= '0';
-                numWords_bcd <= (others => '0');
             ELSE
                 curState <= curState; 
                 rxdone <= '0';
@@ -86,7 +87,7 @@ BEGIN
                 -- assign default values to all outputs to avoid inferred latches
 
                     WHEN INIT =>
-                        IF reset='0' THEN curState <= INIT;
+                        IF reset='1' THEN curState <= INIT;
                         ELSIF rxnow='1' AND ovErr='0' AND framErr='0' THEN
                             word <= rxData;
                             curState <= processWordA;
@@ -102,8 +103,7 @@ BEGIN
                         END IF;
                     
                     WHEN nextWordA =>
-                        IF reset='0' THEN curState <= INIT;
-                        ELSIF rxnow='1' AND ovErr='0' AND framErr='0' THEN
+                        IF rxnow='1' AND ovErr='0' AND framErr='0' THEN
                             word <= rxData;
                             curState <= processWordAN;
                         ELSE curState <= nextWordA;
@@ -119,8 +119,7 @@ BEGIN
                         END IF;
                     
                     WHEN nextWordAN =>
-                        IF reset='0' THEN curState <= INIT;
-                        ELSIF rxnow='1' AND ovErr='0' AND framErr='0' THEN
+                        IF rxnow='1' AND ovErr='0' AND framErr='0' THEN
                             word <= rxData;
                             curState <= processWordANN;
                         ELSE curState <= nextWordAN;
@@ -136,8 +135,7 @@ BEGIN
                         END IF;
                     
                     WHEN nextWordANN =>
-                        IF reset='0' THEN curState <= INIT;
-                        ELSIF rxnow='1' AND ovErr='0' AND framErr='0' THEN
+                        IF rxnow='1' AND ovErr='0' AND framErr='0' THEN
                             word <= rxData;
                             curState <= processWordANNN;
                         ELSE curState <= nextWordANN;
@@ -178,8 +176,7 @@ BEGIN
                         END IF;
 
                     WHEN waitNextWordLP =>
-                        IF reset='0' THEN curState <= INIT;
-                        ELSIF rxnow='1' AND ovErr='0' AND framErr='0' THEN
+                        IF rxnow='1' AND ovErr='0' AND framErr='0' THEN
                             word <= rxData;
                             curState <= processWordLP;
                         ELSE curState <= waitNextWordLP;
