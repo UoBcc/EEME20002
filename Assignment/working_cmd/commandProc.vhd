@@ -46,7 +46,10 @@ begin
     maxIndex_tens <= "0011" & maxIndex(7 downto 4);
     maxIndex_ones <= "0011" & maxIndex(3 downto 0);
 
-    state_register: process(clk, reset)
+    state_register: process(
+        clk, 
+        reset
+        )
     begin
 
         if reset = '1' then
@@ -93,7 +96,23 @@ begin
         end if;
     end process;
     
-    combinational: process(all)
+    combinational: process(
+        curr_state, 
+        valid, 
+        oe, 
+        fe, 
+        dataIn, 
+        seqDone, 
+        isPeak, 
+        isList, 
+        txDone, 
+        byte_counter,
+        bcd_reg,
+        maxIndex_hundreds,
+        maxIndex_tens, 
+        maxIndex_ones, 
+        dataResults
+        )
     begin
         next_state <= curr_state;
         rxDone <= '0';
