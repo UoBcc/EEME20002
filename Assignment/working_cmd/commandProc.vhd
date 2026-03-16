@@ -49,7 +49,8 @@ begin
     state_register: process(
         clk, 
         reset
-        )
+    )
+    
     begin
 
         if reset = '1' then
@@ -112,7 +113,8 @@ begin
         maxIndex_tens, 
         maxIndex_ones, 
         dataResults
-        )
+    )
+
     begin
         next_state <= curr_state;
         rxDone <= '0';
