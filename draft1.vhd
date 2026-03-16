@@ -21,7 +21,7 @@ entity data_processor is
     dataReady: out std_ulogic;
     byte: out std_ulogic_vector(7 downto 0);
     maxIndex: out std_ulogic_vector(11 downto 0); -- Bianary Coded Decimal
-    dataResults: out std_ulogic_vector(55 downto 0);
+    dataResults: out std_ulogic_vector(55 downto 0); -- switch data type here to a "character array" (whatever the fuck that is)
     seqDone: out std_ulogic); -- don't remove this bracket, its for the port function3
 end;
 
