@@ -1,61 +1,66 @@
-library IEEE;
+vhdllibrary IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
--- COMMON_PACK;
- 
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
- 
-entity data_processor is
+use work.common_pack.all; --  gives us BCD_ARRAY_TYPE and CHAR_ARRAY_TYPE not vector
+
+--  renamed from data_processor to dataConsume, all std_ulogic changed to std_logic and Ctrl_1 Ctrl_2 renamed to ctrlOut ctrlIn,
+--  numWords changed to numWords_bcd and type changed to BCD_ARRAY_TYPE
+entity dataConsume is
     port(
-    reset: in std_ulogic;
-    clk: in std_ulogic;
-    Ctrl_2: in std_ulogic;
-    data: in std_ulogic_vector(7 downto 0);
-    start: in std_ulogic;
-    numWords: in std_ulogic_vector(11 downto 0); -- Binary Coded Decimal
+    reset: in std_logic;
+    clk: in std_logic;
+    ctrlIn: in std_logic;
+    data: in std_logic_vector(7 downto 0);
+    start: in std_logic;
+    numWords_bcd: in BCD_ARRAY_TYPE(2 downto 0);
     ----
-    Ctrl_1: out std_ulogic;
-    dataReady: out std_ulogic;
-    byte: out std_ulogic_vector(7 downto 0);
-    maxIndex: out std_ulogic_vector(11 downto 0); -- Binary Coded Decimal
-    dataResults: out std_ulogic_vector(55 downto 0); -- switch data type here to a "character array" (whatever the fuck that is)
-    seqDone: out std_ulogic); -- don't remove this bracket, its for the port function3
+-- maxIndex type changed from vector(11 downto 0) to BCD_ARRAY_TYPE 
+-- dataResults type changed from vector(55 downto 0) to CHAR_ARRAY_TYPE
+   
+    ctrlOut: out std_logic;
+    dataReady: out std_logic;
+    byte: out std_logic_vector(7 downto 0);
+    maxIndex: out BCD_ARRAY_TYPE(2 downto 0);
+    dataResults: out CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1);
+    seqDone: out std_logic);
 end;
 ------------------------------------------------
-architecture arch_mealy of data_processor is
+ -- renamed from arch_mealy to Behavioral to match testbench
+architecture  Behavioral of dataConsume is
 ----------------
--- BDC to integer conversion function
-function  bcd_to_integer(bcd : std_ulogic_vector(11 downto 0)) return integer is
+--  bcd_to_integer now takes BCD_ARRAY_TYPE instead of vector
+-- before: bcd(11 downto 8), bcd(7 downto 4), bcd(3 downto 0)
+-- after:  bcd(2),           bcd(1),           bcd(0)
+function bcd_to_integer(bcd : BCD_ARRAY_TYPE(2 downto 0)) return integer is
     variable hundreds : integer;
     variable tens : integer;
     variable ones : integer;
 begin
-    hundreds := to_integer(unsigned(bcd(11 downto 8)));
-    tens := to_integer(unsigned(bcd(7 downto 4)));
-    ones := to_integer(unsigned(bcd(3 downto 0)));
+    hundreds := to_integer(unsigned(bcd(2))); -- was bcd(11 downto 8)
+    tens     := to_integer(unsigned(bcd(1))); -- was bcd(7 downto 4)
+    ones     := to_integer(unsigned(bcd(0))); -- was bcd(3 downto 0)
     return (hundreds * 100) + (tens * 10) + ones;
 end function;
 ----------------
--- Integer to BCD converter function
-function integer_to_bcd(val : integer) return std_ulogic_vector is
+-- integer_to_bcd now returns BCD_ARRAY_TYPE instead of vector
+-- before: returned std_ulogic_vector(11 downto 0)
+-- after:  returns BCD_ARRAY_TYPE(2 downto 0)
+function integer_to_bcd(val : integer) return BCD_ARRAY_TYPE is
     variable hundreds : integer;
     variable tens : integer;
     variable ones : integer;
-    variable results : std_ulogic_vector(11 downto 0);
+    variable results : BCD_ARRAY_TYPE(2 downto 0); -- was std_ulogic_vector(11 downto 0)
 begin
     hundreds := val/100;
     tens := (val mod 100)/10;
     ones := val mod 10;
-    results(11 downto 8) := std_ulogic_vector(to_unsigned(hundreds, 4));
-    results(7 downto 4) := std_ulogic_vector(to_unsigned(tens, 4));
-    results(3 downto 0) := std_ulogic_vector(to_unsigned(ones, 4));
+    results(2) := std_logic_vector(to_unsigned(hundreds, 4)); -- was results(11 downto 8)
+    results(1) := std_logic_vector(to_unsigned(tens, 4));     -- was results(7 downto 4)
+    results(0) := std_logic_vector(to_unsigned(ones, 4));     -- was results(3 downto 0)
     return results;
 end function;
 ----------------
--- state & signal decleration
+-- state & signal decleration & small changes form ulogic to logic
 type state_type IS (S0, S1, S2, S3, S4);
 -- S0 -> Initial & reset state, requests data from data generator
 -- S1 -> Recieves Data
@@ -64,31 +69,30 @@ type state_type IS (S0, S1, S2, S3, S4);
 -- S4 -> Outputs results
 signal curState, nextState:state_type;
 --
-type shifting_array is array (0 to 6) of std_ulogic_vector(7 downto 0);
+type shifting_array is array (0 to 6) of std_logic_vector(7 downto 0); -- CHANGE 12: std_ulogic_vector to std_logic_vector
 signal shift_register : shifting_array;
 signal result_register : shifting_array;
 signal post_count: integer range 0 to 3:= 0;
 --
 signal curNumWords: integer:= 0;
-signal numWords_int: integer; -- integer version of the BCD numWords
-signal seqDone_sig: std_ulogic;
-signal curPeak: std_ulogic_vector(7 downto 0);
+signal numWords_int: integer;
+signal seqDone_sig: std_logic;          
+signal curPeak: std_logic_vector(7 downto 0);
 signal curPeakIndex: integer:= 0;
-signal curPeakIndex_BCD: std_ulogic_vector(11 downto 0); -- BCD version of curPeakIndex
-signal updateReg: std_ulogic;
-signal Ctrl_2_prev: std_ulogic;
-signal Ctrl_1_sig: std_ulogic;
-signal reg_full: std_ulogic:= '0';
-signal peak_found_proc: std_ulogic:= '0';
-signal peak_was_found: std_ulogic:= '0';
+signal updateReg: std_logic;         
+signal ctrlIn_prev: std_logic;         
+signal ctrlOut_sig: std_logic;          
+signal reg_full: std_logic:= '0';       
+signal peak_found_proc: std_logic:= '0';
+signal peak_was_found: std_logic:= '0'; 
 ----------------
 begin
 ----------------
-Ctrl_1 <= Ctrl_1_sig;
-numWords_int <= bcd_to_integer(numWords);
-curPeakIndex_BCD <= integer_to_bcd(curPeakIndex);
+ctrlOut <= ctrlOut_sig; --  was Ctrl_1 <= Ctrl_1_sig
+numWords_int <= bcd_to_integer(numWords_bcd); -- was bcd_to_integer(numWords)
+--  curPeakIndex_BCD is now done inside integer_to_bcd directly
 ----------------
-nexstate: process(curState, curNumWords, numWords_int, start, seqDone_sig, updateReg, Ctrl_2, Ctrl_2_prev)
+nexstate: process(curState, curNumWords, numWords_int, start, seqDone_sig, updateReg, ctrlIn, ctrlIn_prev)
 begin
     case curState is
         when S0 =>
@@ -98,7 +102,7 @@ begin
                 nextState <= S0;
             end if;
         when S1 =>
-            if Ctrl_2 /= Ctrl_2_prev then
+            if ctrlIn /= ctrlIn_prev then -- CHANGE 14: was Ctrl_2 /= Ctrl_2_prev
                 nextState <= S2;
             else
                 nextState <= S1;
@@ -110,17 +114,12 @@ begin
                 nextState <= S4;
             end if;
         when S3 =>
-            if updateReg = '1' then
-                nextState <= S0;
-            else
-                nextState <= S0;
-            end if;
+            -- was nextState <= S0  XXXXXX here BIG BUG FIX
+            -- going to S0 was restarting the whole sequence every word!
+            -- must go to S1 to request the next word
+            nextState <= S1;
         when S4 =>
-            if seqDone_sig = '1' then
-                nextState <= S0;
-            else
-                nextState <= S0;
-            end if;
+            nextState <= S0;
         end case;
 end process;
 ----------------
@@ -128,39 +127,45 @@ reset_counter: process(clk, reset)
 begin
     if reset = '1' then 
         curState <= S0;
-        Ctrl_2_prev <= '0';
+        ctrlIn_prev <= '0';   
         curNumWords <= 0;
-        Ctrl_1_sig <= '0';
+        ctrlOut_sig <= '0';   
         peak_was_found <= '0';
         post_count <= 0;
     elsif rising_edge(clk) then
         curState <= nextState;
-        Ctrl_2_prev <= Ctrl_2;
-        if Ctrl_2 /= Ctrl_2_prev then
+        ctrlIn_prev <= ctrlIn; 
+        if ctrlIn /= ctrlIn_prev then 
             curNumWords <= curNumWords + 1;
         end if;
-        if curState = S1 then
-            Ctrl_1_sig <= not Ctrl_1_sig;
+        -- reset word counter for new sequence
+        if curState = S0 then
+            curNumWords <= 0;
+        end if;
+        -- ctrlOut toggle fixed
+        -- before: toggled in S1 (wrong, was toggling every cycle in S1)
+        -- after: toggle once when entering S1, and after S3 to request next word
+        if (curState = S0 and nextState = S1) or curState = S3 then
+            ctrlOut_sig <= not ctrlOut_sig;
         end if;
     end if;
 end process;
 ----------------
+-- YOUR OUTPUTS PROCESS KEPT, small changes only
 Outputs: process(clk, reset)
 begin
     if reset = '1' then
         dataReady <= '0';
-        dataResults <= (others => '0');
+        dataResults <= (others => (others => '0')); -- (others => '0'), needs two levels for array of vectors
         seqDone <= '0';
         seqDone_sig <= '0';
         byte <= (others => '0');
-        maxIndex <= (others => '0');
+        maxIndex <= (others => (others => '0')); -- same as above
     elsif rising_edge(clk) then
         dataReady <= '0';
-        dataResults <= (others => '0');
         seqDone <= '0';
         seqDone_sig <= '0';
         byte <= (others => '0');
-        maxIndex <= (others => '0');
         case curState is
             when S1 =>
                 byte <= data;
@@ -168,9 +173,9 @@ begin
             when S4 =>
                 seqDone <= '1';
                 seqDone_sig <= '1';
-                dataResults <= result_register(0) & result_register(1) & result_register(2) & result_register(3) & result_register(4) & result_register(5) & result_register(6);
-                maxIndex <= curPeakIndex_BCD;
-                when others => null;
+                dataResults <= result_register; -- it was concatenating vectors, now direct array assign
+                maxIndex <= integer_to_bcd(curPeakIndex); -- now returns BCD_ARRAY_TYPE directly
+            when others => null;
         end case;
     end if;
 end process;
@@ -228,5 +233,5 @@ begin
     end if;
 end process;
 ----------------
-end arch_mealy;
+end  Behavioral;
 ------------------------------------------------
