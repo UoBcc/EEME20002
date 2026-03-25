@@ -1,4 +1,4 @@
-vhdllibrary IEEE;
+library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use work.common_pack.all; --  gives us BCD_ARRAY_TYPE and CHAR_ARRAY_TYPE not vector
