@@ -1,0 +1,149 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0195)https://oauth.officeapps.live.com/oa/WacOAuth.aspx?replyUrl=https://ukc-powerpoint.officeapps.live.com&usid=658bbf04-ef9e-9743-611e-26a77b4015c6&WacUserType=WOPI&sv=2&bv=16.0.19917.45608&msalv3=1 -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>
+
+</title>
+		<style id="sharedauthstyles" nonce=""></style>
+		<script type="text/javascript" nonce="">
+			class TrustedTypeHandler
+			{
+				constructor()
+				{
+					if("True" === "False")
+					{
+						return;
+					}
+
+					if (window.trustedTypes && window.trustedTypes.createPolicy) {
+						this.policy = trustedTypes.createPolicy('wise-cdn', {
+							createScriptURL(url) {
+								const parsed = new URL(url, document.baseURI);
+								const wiseDomains = "wise.public.cdn.office.net wise-backup.public.onecdn.static.microsoft".split(" ");
+								if (parsed.protocol === 'https:' && wiseDomains.includes(parsed.host)) {
+									return url;
+								}
+
+								if("False" === "True")
+								{
+									if (parsed.protocol === 'https:' && parsed.origin == "https://localhost:5000") {
+										return url;
+									}
+								}
+
+								throw new TypeError('invalid URL');
+							},
+						});
+					}
+				}
+
+				createScriptURL(scriptUrl)
+				{
+					if(!this.policy || "True" === "False")
+					{
+						return scriptUrl;
+					}
+					else
+					{
+						return this.policy.createScriptURL(scriptUrl);
+					}
+				}
+			}
+			var trustedTypePolicy = new TrustedTypeHandler();
+
+			function loadBackupScript() {
+				var backupScript = document.createElement('script');
+				backupScript.setAttribute("data-allowedapps", "5a4eed13-c4c4-4b4c-9506-334ab200bf31;93d53678-613d-4013-afc1-62e9e444a0a5");
+				backupScript.setAttribute("data-allowedaudiences", "e03a13ee-9730-4cae-8525-47559c8cf18a;https://augloop.office.com/v2;394866fc-eedb-4f01-8536-3ff84b16be2a;liveprofilecard.access;https://shredder-us.osi.office.net/;https://substrate.office.com;https://pptservicescast.officeapps.live.com;officespeech.access;https://dcg.microsoft.com/;https://consentservice.microsoft.com/web;https://consentservice.microsoft.com/checkin;https://attributes.engagement.office.com;84a0e9dd-6e58-4aad-82af-ebe485acd09d/.default;84a0e9dd-6e58-4aad-82af-ebe485acd09d;https://immersivereader.cloud.microsoft;eaa4010d-7d48-4484-a790-a3d5cb10b847;https://turbo.microsoft.com;00000003-0000-0ff1-ce00-000000000000;f7c5d3ff-9d2b-414b-a1b4-d736c4e1dfe5;62c1cedb-bd82-475a-91ca-c414c6d72712;https://petrol-int.office.microsoft.com/feedback.readwrite;https://petrol.office.microsoft.com/feedback.readwrite;");
+				backupScript.setAttribute("data-origin", "https://ukc-powerpoint.officeapps.live.com");
+				backupScript.setAttribute("data-scriptload", "PRODUCTION.100: 20260320.11");
+				backupScript.setAttribute("fetchpriority", "high");
+				backupScript.id = "sharedauthscript";
+				backupScript.src = trustedTypePolicy.createScriptURL("https://wise-m-backup.public.onecdn.static.microsoft/wise/owl/sharedauthclientmsal.d367505af0934592688f.js");
+				backupScript.integrity = "sha384-uGUa+dERYPtTW/cJiHJjqrvlCHO7rah24VNLpmEhDszQsZewOq0c99C2PFawDev5";
+				backupScript.nonce = "6523f4c0-8a40-4efd-9af7-31a55367e356";
+				backupScript.crossOrigin = "anonymous";
+				if ("True" === "True") {
+					backupScript.onload = function () {
+						logLoadScriptSuccess(true, performance.now() - startTime);
+					};
+					backupScript.onerror = function () {
+						logLoadScriptError(true, performance.now() - startTime);
+					};
+				}
+				document.head.appendChild(backupScript);
+			}
+
+			function loadScript() {
+				var script = document.createElement('script');
+				script.setAttribute("data-allowedapps", "5a4eed13-c4c4-4b4c-9506-334ab200bf31;93d53678-613d-4013-afc1-62e9e444a0a5");
+				script.setAttribute("data-allowedaudiences", "e03a13ee-9730-4cae-8525-47559c8cf18a;https://augloop.office.com/v2;394866fc-eedb-4f01-8536-3ff84b16be2a;liveprofilecard.access;https://shredder-us.osi.office.net/;https://substrate.office.com;https://pptservicescast.officeapps.live.com;officespeech.access;https://dcg.microsoft.com/;https://consentservice.microsoft.com/web;https://consentservice.microsoft.com/checkin;https://attributes.engagement.office.com;84a0e9dd-6e58-4aad-82af-ebe485acd09d/.default;84a0e9dd-6e58-4aad-82af-ebe485acd09d;https://immersivereader.cloud.microsoft;eaa4010d-7d48-4484-a790-a3d5cb10b847;https://turbo.microsoft.com;00000003-0000-0ff1-ce00-000000000000;f7c5d3ff-9d2b-414b-a1b4-d736c4e1dfe5;62c1cedb-bd82-475a-91ca-c414c6d72712;https://petrol-int.office.microsoft.com/feedback.readwrite;https://petrol.office.microsoft.com/feedback.readwrite;");
+				script.setAttribute("data-origin", "https://ukc-powerpoint.officeapps.live.com");
+				script.setAttribute("data-scriptload", "PRODUCTION.100: 20260320.11");
+				script.setAttribute("fetchpriority", "high");
+				script.id = "sharedauthscript";
+				script.src = trustedTypePolicy.createScriptURL("https://wise.public.cdn.office.net/wise/owl/sharedauthclientmsal.d367505af0934592688f.js")
+				script.integrity = "sha384-uGUa+dERYPtTW/cJiHJjqrvlCHO7rah24VNLpmEhDszQsZewOq0c99C2PFawDev5";
+				script.nonce = "6523f4c0-8a40-4efd-9af7-31a55367e356";
+				script.crossOrigin = "anonymous";
+				if ("True" === "True") {
+					script.onload = function () {
+						logLoadScriptSuccess(false, performance.now() - startTime);
+					};
+					script.onerror = function () {
+						logLoadScriptError(false, performance.now() - startTime);
+						script.parentNode?.removeChild(script);
+						loadBackupScript();
+					};
+				} else {
+					script.onerror = function () {
+						script.parentNode?.removeChild(script);
+						loadBackupScript();
+					};
+				}
+				document.head.appendChild(script);
+			}
+
+			function logLoadScriptSuccess(isBackup, elapsedMilliseconds) {
+				if (navigator.sendBeacon) {
+					var data = JSON.stringify({ isBackup, elapsedMilliseconds });
+					var blob = new Blob([data], { type: 'application/json; charset=utf-8' });
+					navigator.sendBeacon("WacOauth.aspx/LogLoadScriptSuccess", blob);
+				}
+			}
+
+			function logLoadScriptError(isBackup, elapsedMilliseconds) {
+				if (navigator.sendBeacon) {
+					var data = JSON.stringify({ isBackup, elapsedMilliseconds });
+					var blob = new Blob([data], { type: 'application/json; charset=utf-8' });
+					navigator.sendBeacon("WacOauth.aspx/LogLoadScriptError", blob);
+				}
+			}
+
+			var startTime = performance.now();
+			loadScript();
+		</script><script data-allowedapps="5a4eed13-c4c4-4b4c-9506-334ab200bf31;93d53678-613d-4013-afc1-62e9e444a0a5" data-allowedaudiences="e03a13ee-9730-4cae-8525-47559c8cf18a;https://augloop.office.com/v2;394866fc-eedb-4f01-8536-3ff84b16be2a;liveprofilecard.access;https://shredder-us.osi.office.net/;https://substrate.office.com;https://pptservicescast.officeapps.live.com;officespeech.access;https://dcg.microsoft.com/;https://consentservice.microsoft.com/web;https://consentservice.microsoft.com/checkin;https://attributes.engagement.office.com;84a0e9dd-6e58-4aad-82af-ebe485acd09d/.default;84a0e9dd-6e58-4aad-82af-ebe485acd09d;https://immersivereader.cloud.microsoft;eaa4010d-7d48-4484-a790-a3d5cb10b847;https://turbo.microsoft.com;00000003-0000-0ff1-ce00-000000000000;f7c5d3ff-9d2b-414b-a1b4-d736c4e1dfe5;62c1cedb-bd82-475a-91ca-c414c6d72712;https://petrol-int.office.microsoft.com/feedback.readwrite;https://petrol.office.microsoft.com/feedback.readwrite;" data-origin="https://ukc-powerpoint.officeapps.live.com" data-scriptload="PRODUCTION.100: 20260320.11" fetchpriority="high" id="sharedauthscript" src="./sharedauthclientmsal.d367505af0934592688f.js" integrity="sha384-uGUa+dERYPtTW/cJiHJjqrvlCHO7rah24VNLpmEhDszQsZewOq0c99C2PFawDev5" crossorigin="anonymous"></script>
+	</head>
+	<body data-new-gr-c-s-check-loaded="14.1278.0" data-gr-ext-installed="">
+		
+	
+</body><grammarly-desktop-integration data-grammarly-shadow-root="true"><template shadowrootmode="open"><style>
+      div.grammarly-desktop-integration {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select:none;
+        user-select:none;
+      }
+
+      div.grammarly-desktop-integration:before {
+        content: attr(data-content);
+      }
+    </style><div aria-label="grammarly-integration" role="group" tabindex="-1" class="grammarly-desktop-integration" data-content="{&quot;mode&quot;:&quot;limited&quot;,&quot;isActive&quot;:false,&quot;isUserDisabled&quot;:false}"></div></template></grammarly-desktop-integration></html>

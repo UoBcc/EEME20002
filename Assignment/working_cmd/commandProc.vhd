@@ -11,19 +11,19 @@ entity cmdProc is
         clk: in std_logic;
         reset: in std_logic;
 
-        rxnow: in std_logic;
-        rxData: in std_logic_vector(7 downto 0);
-        rxdone: out std_logic;
-        ovErr: in std_logic;
-        framErr: in std_logic;
+        rxnow: in std_logic; -- Fornally valid
+        rxData: in std_logic_vector(7 downto 0); -- Formally dataIn
+        rxdone: out std_logic; -- Formally rxDone
+        ovErr: in std_logic; -- Formally oe
+        framErr: in std_logic; -- Formally fe
 
-        txData: out std_logic_vector(7 downto 0);
-        txnow: out std_logic;
+        txData: out std_logic_vector(7 downto 0); -- Formally dataOut
+        txnow: out std_logic; 
         txdone: in std_logic;
 
         start: out std_logic;
-        numWords_bcd: out std_logic_vector(11 downto 0); -- BCD_ARRAY_TYPE(2 downto 0);
-        dataReady: in std_logic;
+        numWords_bcd: out std_logic_vector(11 downto 0); -- BCD_ARRAY_TYPE(2 downto 0); Formally numWords
+        dataReady: in std_logic; 
         byte: in std_logic_vector(7 downto 0);
         maxIndex: in std_logic_vector(11 downto 0); -- BCD_ARRAY_TYPE(2 downto 0);
         dataResults: in std_logic_vector(55 downto 0); -- CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1);
