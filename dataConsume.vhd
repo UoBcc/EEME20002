@@ -207,7 +207,7 @@ begin
             shift_register(0)      <= data;
             shift_register(1 to 6) <= shift_register(0 to 5);
 
-            if peak_found_proc = '1' then
+            if peak_found_proc = '1' and peak_was_found = '0' then
                 curPeak            <= data;
                 curPeakIndex       <= curNumWords - 1;
                 result_register(3) <= data;
@@ -217,13 +217,7 @@ begin
                 peak_was_found     <= '1';
                 post_count         <= 0;
 
-            -- post-peak bytes captured HERE in S2, not S3
-            -- in S3 data is still the peak byte so capturing there is wrong
-            -- post_count < 3 guard prevents overflow crash
             elsif peak_was_found = '1' and post_count < 3 then
-                -- post_count=0 -> result_register(2) = byte N+1
-                -- post_count=1 -> result_register(1) = byte N+2
-                -- post_count=2 -> result_register(0) = byte N+3
                 result_register(2 - post_count) <= data;
                 post_count <= post_count + 1;
             end if;
