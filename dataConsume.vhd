@@ -16,7 +16,6 @@ entity dataConsume is
     ----
 -- maxIndex type changed from vector(11 downto 0) to BCD_ARRAY_TYPE 
 -- dataResults type changed from vector(55 downto 0) to CHAR_ARRAY_TYPE
-   
     ctrlOut: out std_logic;
     dataReady: out std_logic;
     byte: out std_logic_vector(7 downto 0);
@@ -25,8 +24,8 @@ entity dataConsume is
     seqDone: out std_logic);
 end;
 ------------------------------------------------
- -- renamed from arch_mealy to Behavioral to match testbench
-architecture  Behavioral of dataConsume is
+-- renamed from arch_mealy to Behavioral to match testbench
+architecture Behavioral of dataConsume is
 ----------------
 --  bcd_to_integer now takes BCD_ARRAY_TYPE instead of vector
 -- before: bcd(11 downto 8), bcd(7 downto 4), bcd(3 downto 0)
@@ -67,24 +66,24 @@ type state_type IS (S0, S1, S2, S3, S4);
 -- S2 -> Processes Data
 -- S3 -> Shift register
 -- S4 -> Outputs results
-signal curState, nextState:state_type;
+signal curState, nextState: state_type;
 --
-type shifting_array is array (0 to 6) of std_logic_vector(7 downto 0); -- CHANGE 12: std_ulogic_vector to std_logic_vector
+type shifting_array is array (0 to 6) of std_logic_vector(7 downto 0); -- std_ulogic_vector to std_logic_vector
 signal shift_register : shifting_array;
-signal result_register : shifting_array;
-signal post_count: integer range 0 to 3:= 0;
+signal result_register : CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1);
+signal post_count: integer range 0 to 3 := 0;
 --
-signal curNumWords: integer:= 0;
+signal curNumWords: integer := 0;
 signal numWords_int: integer;
-signal seqDone_sig: std_logic;          
+signal seqDone_sig: std_logic;
 signal curPeak: std_logic_vector(7 downto 0);
-signal curPeakIndex: integer:= 0;
-signal updateReg: std_logic;         
-signal ctrlIn_prev: std_logic;         
-signal ctrlOut_sig: std_logic;          
-signal reg_full: std_logic:= '0';       
-signal peak_found_proc: std_logic:= '0';
-signal peak_was_found: std_logic:= '0'; 
+signal curPeakIndex: integer := 0;
+signal updateReg: std_logic;
+signal ctrlIn_prev: std_logic;
+signal ctrlOut_sig: std_logic;
+signal reg_full: std_logic := '0';
+signal peak_found_proc: std_logic := '0';
+signal peak_was_found: std_logic := '0';
 ----------------
 begin
 ----------------
@@ -102,7 +101,7 @@ begin
                 nextState <= S0;
             end if;
         when S1 =>
-            if ctrlIn /= ctrlIn_prev then -- CHANGE 14: was Ctrl_2 /= Ctrl_2_prev
+            if ctrlIn /= ctrlIn_prev then
                 nextState <= S2;
             else
                 nextState <= S1;
@@ -120,22 +119,21 @@ begin
             nextState <= S1;
         when S4 =>
             nextState <= S0;
-        end case;
+    end case;
 end process;
 ----------------
 reset_counter: process(clk, reset)
 begin
-    if reset = '1' then 
-        curState <= S0;
-        ctrlIn_prev <= '0';   
-        curNumWords <= 0;
-        ctrlOut_sig <= '0';   
+    if reset = '1' then
+        curState       <= S0;
+        ctrlIn_prev    <= '0';
+        curNumWords    <= 0;
+        ctrlOut_sig    <= '0';
         peak_was_found <= '0';
-        post_count <= 0;
     elsif rising_edge(clk) then
         curState <= nextState;
-        ctrlIn_prev <= ctrlIn; 
-        if ctrlIn /= ctrlIn_prev then 
+        ctrlIn_prev <= ctrlIn;
+        if ctrlIn /= ctrlIn_prev then
             curNumWords <= curNumWords + 1;
         end if;
         -- reset word counter for new sequence
@@ -151,30 +149,29 @@ begin
     end if;
 end process;
 ----------------
--- YOUR OUTPUTS PROCESS KEPT, small changes only
 Outputs: process(clk, reset)
 begin
     if reset = '1' then
-        dataReady <= '0';
+        dataReady   <= '0';
         dataResults <= (others => (others => '0')); -- (others => '0'), needs two levels for array of vectors
-        seqDone <= '0';
+        seqDone     <= '0';
         seqDone_sig <= '0';
-        byte <= (others => '0');
-        maxIndex <= (others => (others => '0')); -- same as above
+        byte        <= (others => '0');
+        maxIndex    <= (others => (others => '0')); -- same as above
     elsif rising_edge(clk) then
-        dataReady <= '0';
-        seqDone <= '0';
+        dataReady   <= '0';
+        seqDone     <= '0';
         seqDone_sig <= '0';
-        byte <= (others => '0');
+        byte        <= (others => '0');
         case curState is
             when S1 =>
-                byte <= data;
+                byte      <= data;
                 dataReady <= '1';
             when S4 =>
-                seqDone <= '1';
+                seqDone     <= '1';
                 seqDone_sig <= '1';
                 dataResults <= result_register; -- it was concatenating vectors, now direct array assign
-                maxIndex <= integer_to_bcd(curPeakIndex); -- now returns BCD_ARRAY_TYPE directly
+                maxIndex    <= integer_to_bcd(curPeakIndex); -- now returns BCD_ARRAY_TYPE directly
             when others => null;
         end case;
     end if;
@@ -184,54 +181,58 @@ DataProcessing_comp: process(curState, data, curPeak)
 begin
     peak_found_proc <= '0';
     if curState = S2 then
-        if data > curPeak then
+        if signed(data) > signed(curPeak) then
             peak_found_proc <= '1';
         elsif data = curPeak then
             peak_found_proc <= '1';
-        elsif data < curPeak then
+        else
             peak_found_proc <= '0';
         end if;
     end if;
 end process;
 ------
-DataProcessing_assign: process(clk, curState, Data, curNumWords, shift_register, curPeak, peak_found_proc)
+DataProcessing_assign: process(clk)
 begin
     if rising_edge(clk) then
+
+        -- FIX: reset all data state on S0 so new sequence starts clean
         if curState = S0 then
             peak_was_found <= '0';
-            updateReg <= '0';
+            updateReg      <= '0';
+            curPeak        <= (others => '0');
+            curPeakIndex   <= 0;
+            post_count     <= 0;
         end if;
+
         if curState = S2 then
-            if peak_found_proc = '1' then
-                curPeak <= data;
-                curPeakIndex <= curNumWords;
-                result_register(0 to 2) <= shift_register(0 to 2);
-                result_register(3) <= curPeak;
-            elsif peak_found_proc = '0' then
-                curPeak <= curPeak;
-                curPeakIndex <= curPeakIndex;
-            end if;
-        end if;
-    
-        if curState = S2 then
-            shift_register(0) <= data;
+            -- always shift the register every S2
+            shift_register(0)      <= data;
             shift_register(1 to 6) <= shift_register(0 to 5);
-            if peak_found_proc = '1' then 
+
+            if peak_found_proc = '1' then
+                curPeak      <= data;
+                curPeakIndex <= curNumWords - 1; -- FIX: -1 for 0-based index
+                result_register(3) <= data;               -- peak byte
+                result_register(4) <= shift_register(0);  -- byte N-1
+                result_register(5) <= shift_register(1);  -- byte N-2
+                result_register(6) <= shift_register(2);  -- byte N-3
                 peak_was_found <= '1';
-                post_count <= 0;
-            end if;
-        elsif curState = S3 then
-            updateReg <= '1';
-            if peak_was_found = '1' then
+                post_count     <= 0;
+
+            -- FIX: post-peak bytes captured HERE in S2 (not S3)
+            -- in S3, data is still the peak byte so capturing there is wrong
+            -- FIX: post_count < 3 guard prevents overflow crash in simulation
+            elsif peak_was_found = '1' and post_count < 3 then
+                -- post_count=0 -> result_register(2) = byte N+1
+                -- post_count=1 -> result_register(1) = byte N+2
+                -- post_count=2 -> result_register(0) = byte N+3
+                result_register(2 - post_count) <= data;
                 post_count <= post_count + 1;
-                result_register(4 + post_count) <= data;                
-                if post_count = 2 then
-                    reg_full <= '1';
-                end if;
             end if;
         end if;
+
     end if;
 end process;
 ----------------
-end  Behavioral;
+end Behavioral;
 ------------------------------------------------
