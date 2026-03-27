@@ -195,7 +195,6 @@ DataProcessing_assign: process(clk)
 begin
     if rising_edge(clk) then
 
-        -- FIX: reset all data state on S0 so new sequence starts clean
         if curState = S0 then
             peak_was_found <= '0';
             updateReg      <= '0';
@@ -205,23 +204,22 @@ begin
         end if;
 
         if curState = S2 then
-            -- always shift the register every S2
             shift_register(0)      <= data;
             shift_register(1 to 6) <= shift_register(0 to 5);
 
             if peak_found_proc = '1' then
-                curPeak      <= data;
-                curPeakIndex <= curNumWords - 1; -- FIX: -1 for 0-based index
-                result_register(3) <= data;               -- peak byte
-                result_register(4) <= shift_register(0);  -- byte N-1
-                result_register(5) <= shift_register(1);  -- byte N-2
-                result_register(6) <= shift_register(2);  -- byte N-3
-                peak_was_found <= '1';
-                post_count     <= 0;
+                curPeak            <= data;
+                curPeakIndex       <= curNumWords - 1;
+                result_register(3) <= data;
+                result_register(4) <= shift_register(0);
+                result_register(5) <= shift_register(1);
+                result_register(6) <= shift_register(2);
+                peak_was_found     <= '1';
+                post_count         <= 0;
 
-            -- FIX: post-peak bytes captured HERE in S2 (not S3)
-            -- in S3, data is still the peak byte so capturing there is wrong
-            -- FIX: post_count < 3 guard prevents overflow crash in simulation
+            -- post-peak bytes captured HERE in S2, not S3
+            -- in S3 data is still the peak byte so capturing there is wrong
+            -- post_count < 3 guard prevents overflow crash
             elsif peak_was_found = '1' and post_count < 3 then
                 -- post_count=0 -> result_register(2) = byte N+1
                 -- post_count=1 -> result_register(1) = byte N+2
