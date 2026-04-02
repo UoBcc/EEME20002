@@ -3,8 +3,6 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use work.common_pack.all; --  gives us BCD_ARRAY_TYPE and CHAR_ARRAY_TYPE not vector
 
---  renamed from data_processor to dataConsume, all std_ulogic changed to std_logic and Ctrl_1 Ctrl_2 renamed to ctrlOut ctrlIn,
---  numWords changed to numWords_bcd and type changed to BCD_ARRAY_TYPE
 entity dataConsume is
     port(
     reset: in std_logic;
@@ -24,7 +22,7 @@ entity dataConsume is
     seqDone: out std_logic);
 end;
 ------------------------------------------------
--- renamed from arch_mealy to Behavioral to match testbench
+
 architecture Behavioral of dataConsume is
 ----------------
 --  bcd_to_integer now takes BCD_ARRAY_TYPE instead of vector
