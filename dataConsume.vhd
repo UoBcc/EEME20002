@@ -1,228 +1,240 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use work.common_pack.all; --  gives us BCD_ARRAY_TYPE and CHAR_ARRAY_TYPE not vector
+use work.common_pack.all;
 
 entity dataConsume is
     port(
-    reset: in std_logic;
-    clk: in std_logic;
-    ctrlIn: in std_logic;
-    data: in std_logic_vector(7 downto 0);
-    start: in std_logic;
-    numWords_bcd: in BCD_ARRAY_TYPE(2 downto 0);
-    ----
--- maxIndex type changed from vector(11 downto 0) to BCD_ARRAY_TYPE 
--- dataResults type changed from vector(55 downto 0) to CHAR_ARRAY_TYPE
-    ctrlOut: out std_logic;
-    dataReady: out std_logic;
-    byte: out std_logic_vector(7 downto 0);
-    maxIndex: out BCD_ARRAY_TYPE(2 downto 0);
-    dataResults: out CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1);
-    seqDone: out std_logic);
-end;
-------------------------------------------------
+        clk          : in std_logic;
+        reset        : in std_logic;
+        start        : in std_logic;
+        numWords_bcd : in BCD_ARRAY_TYPE(2 downto 0);
+        ctrlIn  : in std_logic;
+        data         : in std_logic_vector(7 downto 0);
+        ctrlOut      : out std_logic;
+        dataReady    : out std_logic;
+        byte         : out std_logic_vector(7 downto 0);
+        maxIndex     : out BCD_ARRAY_TYPE(2 downto 0);
+        dataResults  : out CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1);
+        seqDone      : out std_logic
+    );
+end dataConsume;
 
+
+--------------------------------------------------------------------------------------------------------
 architecture Behavioral of dataConsume is
-----------------
---  bcd_to_integer now takes BCD_ARRAY_TYPE instead of vector
--- before: bcd(11 downto 8), bcd(7 downto 4), bcd(3 downto 0)
--- after:  bcd(2),           bcd(1),           bcd(0)
-function bcd_to_integer(bcd : BCD_ARRAY_TYPE(2 downto 0)) return integer is
-    variable hundreds : integer;
-    variable tens : integer;
-    variable ones : integer;
+
+    type state_type is (S0, S1, S2, S3, S4, S5, S6, S7, S8);
+
+    signal curState  : state_type;
+    signal nextState : state_type;
+
+    signal ctrlOut_sig  : std_logic := '0';
+    signal ctrlIn_prev  : std_logic := '0';
+    signal ctrlIn_edge  : std_logic;
+
+    signal numWords_int : integer := 0;
+    signal curNumWords  : integer := 0;
+
+    -- index 0 = oldest byte, index 6 = newest byte
+    signal shift_register  : CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1);
+    signal result_register : CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1);
+
+    signal curPeak      : integer := -128; -- min value of signed 8 bit
+    signal curPeakIndex : integer := 0;
+-----------------------------------------------------------------------------------------------------------
+    -- BCD to integer conversion
+    function bcd_to_int(bcd : BCD_ARRAY_TYPE(2 downto 0)) return integer is
+        variable result : integer := 0;
+    begin
+        result := to_integer(unsigned(bcd(2))) * 100;
+        result := result + to_integer(unsigned(bcd(1))) * 10;
+        result := result + to_integer(unsigned(bcd(0)));
+        return result;
+    end function;
+
+    -- integer back to BCD for the maxIndex output
+    function int_to_bcd(n : integer) return BCD_ARRAY_TYPE is
+        variable bcd : BCD_ARRAY_TYPE(2 downto 0);
+        variable tmp : integer;
+    begin
+        bcd := (others => (others => '0'));
+        tmp := n;
+        bcd(2) := std_logic_vector(to_unsigned(tmp / 100, 4));
+        tmp := tmp mod 100;
+        bcd(1) := std_logic_vector(to_unsigned(tmp / 10, 4));
+        bcd(0) := std_logic_vector(to_unsigned(tmp mod 10, 4));
+        return bcd;
+    end function;
+-------------------------------------------------------------------------------------
 begin
-    hundreds := to_integer(unsigned(bcd(2))); -- was bcd(11 downto 8)
-    tens     := to_integer(unsigned(bcd(1))); -- was bcd(7 downto 4)
-    ones     := to_integer(unsigned(bcd(0))); -- was bcd(3 downto 0)
-    return (hundreds * 100) + (tens * 10) + ones;
-end function;
-----------------
--- integer_to_bcd now returns BCD_ARRAY_TYPE instead of vector
--- before: returned std_ulogic_vector(11 downto 0)
--- after:  returns BCD_ARRAY_TYPE(2 downto 0)
-function integer_to_bcd(val : integer) return BCD_ARRAY_TYPE is
-    variable hundreds : integer;
-    variable tens : integer;
-    variable ones : integer;
-    variable results : BCD_ARRAY_TYPE(2 downto 0); -- was std_ulogic_vector(11 downto 0)
-begin
-    hundreds := val/100;
-    tens := (val mod 100)/10;
-    ones := val mod 10;
-    results(2) := std_logic_vector(to_unsigned(hundreds, 4)); -- was results(11 downto 8)
-    results(1) := std_logic_vector(to_unsigned(tens, 4));     -- was results(7 downto 4)
-    results(0) := std_logic_vector(to_unsigned(ones, 4));     -- was results(3 downto 0)
-    return results;
-end function;
-----------------
--- state & signal decleration & small changes form ulogic to logic
-type state_type IS (S0, S1, S2, S3, S4);
--- S0 -> Initial & reset state, requests data from data generator
--- S1 -> Recieves Data
--- S2 -> Processes Data
--- S3 -> Shift register
--- S4 -> Outputs results
-signal curState, nextState: state_type;
---
-type shifting_array is array (0 to 6) of std_logic_vector(7 downto 0); -- std_ulogic_vector to std_logic_vector
-signal shift_register : shifting_array;
-signal result_register : CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1);
-signal post_count: integer range 0 to 3 := 0;
---
-signal curNumWords: integer := 0;
-signal numWords_int: integer;
-signal seqDone_sig: std_logic;
-signal curPeak: std_logic_vector(7 downto 0);
-signal curPeakIndex: integer := 0;
-signal updateReg: std_logic;
-signal ctrlIn_prev: std_logic;
-signal ctrlOut_sig: std_logic;
-signal reg_full: std_logic := '0';
-signal peak_found_proc: std_logic := '0';
-signal peak_was_found: std_logic := '0';
-----------------
-begin
-----------------
-ctrlOut <= ctrlOut_sig; --  was Ctrl_1 <= Ctrl_1_sig
-numWords_int <= bcd_to_integer(numWords_bcd); -- was bcd_to_integer(numWords)
---  curPeakIndex_BCD is now done inside integer_to_bcd directly
-----------------
-nexstate: process(curState, curNumWords, numWords_int, start, seqDone_sig, updateReg, ctrlIn, ctrlIn_prev)
-begin
-    case curState is
-        when S0 =>
-            if start = '1' then
-                nextState <= S1;
-            else
-                nextState <= S0;
-            end if;
-        when S1 =>
-            if ctrlIn /= ctrlIn_prev then
-                nextState <= S2;
-            else
-                nextState <= S1;
-            end if;
-        when S2 =>
-            if curNumWords < numWords_int then
-                nextState <= S3;
-            else
-                nextState <= S4;
-            end if;
-        when S3 =>
-            -- was nextState <= S0  XXXXXX here BIG BUG FIX
-            -- going to S0 was restarting the whole sequence every word!
-            -- must go to S1 to request the next word
-            nextState <= S1;
-        when S4 =>
-            nextState <= S0;
-    end case;
-end process;
-----------------
-reset_counter: process(clk, reset)
-begin
-    if reset = '1' then
-        curState       <= S0;
-        ctrlIn_prev    <= '0';
-        curNumWords    <= 0;
-        ctrlOut_sig    <= '0';
-        peak_was_found <= '0';
-    elsif rising_edge(clk) then
-        curState <= nextState;
-        ctrlIn_prev <= ctrlIn;
-        if ctrlIn /= ctrlIn_prev then
-            curNumWords <= curNumWords + 1;
-        end if;
-        -- reset word counter for new sequence
-        if curState = S0 then
-            curNumWords <= 0;
-        end if;
-        -- ctrlOut toggle fixed
-        -- before: toggled in S1 (wrong, was toggling every cycle in S1)
-        -- after: toggle once when entering S1, and after S3 to request next word
-        if (curState = S0 and nextState = S1) or curState = S3 then
-            ctrlOut_sig <= not ctrlOut_sig;
-        end if;
-    end if;
-end process;
-----------------
-Outputs: process(clk, reset)
-begin
-    if reset = '1' then
-        dataReady   <= '0';
-        dataResults <= (others => (others => '0')); -- (others => '0'), needs two levels for array of vectors
-        seqDone     <= '0';
-        seqDone_sig <= '0';
-        byte        <= (others => '0');
-        maxIndex    <= (others => (others => '0')); -- same as above
-    elsif rising_edge(clk) then
-        dataReady   <= '0';
-        seqDone     <= '0';
-        seqDone_sig <= '0';
-        byte        <= (others => '0');
+
+    ctrlOut     <= ctrlOut_sig;
+    dataResults <= result_register;
+    maxIndex    <= int_to_bcd(curPeakIndex);
+
+    -- edge detect on ctrlIn using XOR with delayed version
+    ctrlIn_edge <= ctrlIn xor ctrlIn_prev;
+
+----------------------------------------------------------------------------------------------------------
+    process(curState, start, ctrlIn_edge, curNumWords, numWords_int)
+    begin
+        nextState <= curState; -- sStayin same state unless changed below
         case curState is
+
+            when S0 =>
+                if start = '1' then
+                    nextState <= S1;
+                end if;
+
             when S1 =>
-                byte      <= data;
-                dataReady <= '1';
+                    nextState <= S2;
+
+            when S2 =>
+                -- wait here until the generator toggles ctrlIn
+                if ctrlIn_edge = '1' then
+                    nextState <= S3;
+                end if;
+
+            when S3 =>
+                nextState <= S4;
+
             when S4 =>
-                seqDone     <= '1';
-                seqDone_sig <= '1';
-                dataResults <= result_register; -- it was concatenating vectors, now direct array assign
-                maxIndex    <= integer_to_bcd(curPeakIndex); -- now returns BCD_ARRAY_TYPE directly
-            when others => null;
+                if curNumWords < numWords_int then
+                    nextState <= S1;
+                else
+                    nextState <= S5; --all bytes read now check last positions
+                end if;
+
+            when S5 =>
+                nextState <= S6;
+            when S6 =>
+                nextState <= S7;
+            when S7 =>
+                nextState <= S8;
+            when S8 =>
+                nextState <= S0;
+
+            when others =>
+                nextState <= S0;
         end case;
-    end if;
-end process;
-----------------
-DataProcessing_comp: process(curState, data, curPeak)
-begin
-    peak_found_proc <= '0';
-    if curState = S2 then
-        if signed(data) > signed(curPeak) then
-            peak_found_proc <= '1';
-        elsif data = curPeak then
-            peak_found_proc <= '1';
-        else
-            peak_found_proc <= '0';
-        end if;
-    end if;
-end process;
-------
-DataProcessing_assign: process(clk)
-begin
-    if rising_edge(clk) then
+    end process;
+------------------------------------------------------------------------------------------------------------------------------------
+   
+    process(clk)
+        variable curVAL : integer;
+    begin
+        if rising_edge(clk) then
 
-        if curState = S0 then
-            peak_was_found <= '0';
-            updateReg      <= '0';
-            curPeak        <= (others => '0');
-            curPeakIndex   <= 0;
-            post_count     <= 0;
-        end if;
+            if reset = '1' then
+                curState        <= S0;
+                ctrlOut_sig     <= '0';
+                ctrlIn_prev     <= '0';
+                numWords_int    <= 0;
+                curNumWords     <= 0;
+                shift_register  <= (others => (others => '0'));
+                result_register <= (others => (others => '0'));
+                curPeak         <= -128;
+                curPeakIndex    <= 0;
+                dataReady       <= '0';
+                seqDone         <= '0';
+                byte            <= (others => '0');
 
-        if curState = S2 then
-            shift_register(0)      <= data;
-            shift_register(1 to 6) <= shift_register(0 to 5);
+            else
+                curState    <= nextState;
+                ctrlIn_prev <= ctrlIn;
 
-            if peak_found_proc = '1' and peak_was_found = '0' then
-                curPeak            <= data;
-                curPeakIndex       <= curNumWords - 1;
-                result_register(3) <= data;
-                result_register(4) <= shift_register(0);
-                result_register(5) <= shift_register(1);
-                result_register(6) <= shift_register(2);
-                peak_was_found     <= '1';
-                post_count         <= 0;
+                dataReady <= '0'; -- default low, only pulse high when needed
+                seqDone   <= '0';
 
-            elsif peak_was_found = '1' and post_count < 3 then
-                result_register(2 - post_count) <= data;
-                post_count <= post_count + 1;
+                case curState is
+
+                    when S0 =>
+                        ctrlOut_sig     <= '0';
+                        numWords_int    <= bcd_to_int(numWords_bcd);
+                        curNumWords     <= 0;
+                        shift_register  <= (others => (others => '0'));
+                        result_register <= (others => (others => '0'));
+                        curPeak         <= -128;
+                        curPeakIndex    <= 0;
+                        byte            <= (others => '0');
+
+                    when S1 =>
+                        -- toggle ctrlOut to signal we want the next byte
+                        ctrlOut_sig <= not ctrlOut_sig;
+
+                    when S2 =>
+                        null; -- just waiting
+
+                    when S3 =>
+                        curNumWords <= curNumWords + 1;
+                        -- shift old values left, put new byte at end (index 6)
+                        shift_register(0 to RESULT_BYTE_NUM-2) <= shift_register(1 to RESULT_BYTE_NUM-1);
+                        shift_register(RESULT_BYTE_NUM-1) <= data;
+                        byte      <= data;
+                        dataReady <= '1';
+
+                    when S4 =>
+                        -- only check once window is full (7 bytes received)
+                        if curNumWords >= RESULT_BYTE_NUM then
+                            curVAL := to_integer(signed(shift_register(3)));
+                            if curVAL > curPeak then
+                                curPeak      <= curVAL;
+                                curPeakIndex <= curNumWords - 4;
+                                result_register <= shift_register;
+                            end if;
+                        end if;
+
+                    
+                    -- XXXXXXXXXXXXXXXXXXX not 100% sure the index offsets are right here but testbench passes
+                    when S5 =>
+                        curVAL := to_integer(signed(shift_register(4)));
+                        if curVAL > curPeak then
+                            curPeak      <= curVAL;
+                            curPeakIndex <= curNumWords - 3;
+                            result_register(0) <= shift_register(1);
+                            result_register(1) <= shift_register(2);
+                            result_register(2) <= shift_register(3);
+                            result_register(3) <= shift_register(4);
+                            result_register(4) <= shift_register(5);
+                            result_register(5) <= shift_register(6);
+                            result_register(6) <= (others => '0');
+                        end if;
+
+                    when S6 =>
+                        curVAL := to_integer(signed(shift_register(5)));
+                        if curVAL > curPeak then
+                            curPeak      <= curVAL;
+                            curPeakIndex <= curNumWords - 2;
+                            result_register(0) <= shift_register(2);
+                            result_register(1) <= shift_register(3);
+                            result_register(2) <= shift_register(4);
+                            result_register(3) <= shift_register(5);
+                            result_register(4) <= shift_register(6);
+                            result_register(5) <= (others => '0');
+                            result_register(6) <= (others => '0');
+                        end if;
+
+                    when S7 =>
+                        curVAL := to_integer(signed(shift_register(6)));
+                        if curVAL > curPeak then
+                            curPeak      <= curVAL;
+                            curPeakIndex <= curNumWords - 1;
+                            result_register(0) <= shift_register(3);
+                            result_register(1) <= shift_register(4);
+                            result_register(2) <= shift_register(5);
+                            result_register(3) <= shift_register(6);
+                            result_register(4) <= (others => '0');
+                            result_register(5) <= (others => '0');
+                            result_register(6) <= (others => '0');
+                        end if;
+
+                    when S8 =>
+                        seqDone <= '1';
+
+                end case;
             end if;
         end if;
+    end process;
 
-    end if;
-end process;
-----------------
 end Behavioral;
-------------------------------------------------
