@@ -24,7 +24,7 @@ end dataConsume;
 --------------------------------------------------------------------------------------------------------
 architecture Behavioral of dataConsume is
 
-    type state_type is (S0, S1, S2, S3, S4, S5, S6, S7, S8);
+    type state_type is (S0, S1, S2, S3, S4, S5, S6, S7, S8, S9);
 
     signal curState  : state_type;
     signal nextState : state_type;
@@ -101,7 +101,7 @@ begin
 
             when S4 =>
                 if curNumWords < numWords_int then
-                    nextState <= S1;
+                    nextState <= S9; -- go to waiting state
                 else
                     nextState <= S5; --all bytes read now check last positions
                 end if;
@@ -114,7 +114,10 @@ begin
                 nextState <= S8;
             when S8 =>
                 nextState <= S0;
-
+            when s9 =>
+               if start = '1' then
+                nextState <= S1;
+               end if;
             when others =>
                 nextState <= S0;
         end case;
@@ -231,6 +234,9 @@ begin
 
                     when S8 =>
                         seqDone <= '1';
+                    
+                    when S9 =>
+                        null;
 
                 end case;
             end if;
