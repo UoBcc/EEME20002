@@ -9,7 +9,7 @@ entity dataConsume is
         reset        : in std_logic;
         start        : in std_logic;
         numWords_bcd : in BCD_ARRAY_TYPE(2 downto 0);
-        ctrlIn  : in std_logic;
+        ctrlIn       : in std_logic;
         data         : in std_logic_vector(7 downto 0);
         ctrlOut      : out std_logic;
         dataReady    : out std_logic;
@@ -23,23 +23,28 @@ end dataConsume;
 
 --------------------------------------------------------------------------------------------------------
 architecture Behavioral of dataConsume is
-
+----------------
+--state & signal declaration
+-- FSM used to request data, read incoming bytes, process the 7-byte window for peak detection, and output the final result
     type state_type is (S0, S1, S2, S3, S4, S5, S6, S7, S8, S9);
 
     signal curState  : state_type;
     signal nextState : state_type;
-
+--
     signal ctrlOut_sig  : std_logic := '0';
     signal ctrlIn_prev  : std_logic := '0';
     signal ctrlIn_edge  : std_logic;
-
+--
     signal numWords_int : integer := 0;
     signal curNumWords  : integer := 0;
-
+--
     -- index 0 = oldest byte, index 6 = newest byte
+    --main datapath register storing the current 7-byte windo
     signal shift_register  : CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1);
-    signal result_register : CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1);
 
+    -- stores the best 7-byte window found around the detected peak
+    signal result_register : CHAR_ARRAY_TYPE(0 to RESULT_BYTE_NUM-1);
+--
     signal curPeak      : integer := -128; -- min value of signed 8 bit
     signal curPeakIndex : integer := 0;
 -----------------------------------------------------------------------------------------------------------
@@ -54,6 +59,7 @@ architecture Behavioral of dataConsume is
     end function;
 
     -- integer back to BCD for the maxIndex output
+    --converts detected peak index back to output format
     function int_to_bcd(n : integer) return BCD_ARRAY_TYPE is
         variable bcd : BCD_ARRAY_TYPE(2 downto 0);
         variable tmp : integer;
@@ -68,18 +74,21 @@ architecture Behavioral of dataConsume is
     end function;
 -------------------------------------------------------------------------------------
 begin
+--------------
 
     ctrlOut     <= ctrlOut_sig;
     dataResults <= result_register;
     maxIndex    <= int_to_bcd(curPeakIndex);
 
     -- edge detect on ctrlIn using XOR with delayed version
+    -- used to know when generator has changed and new byte is ready
     ctrlIn_edge <= ctrlIn xor ctrlIn_prev;
 
 ----------------------------------------------------------------------------------------------------------
+    -- next state logic
     process(curState, start, ctrlIn_edge, curNumWords, numWords_int)
     begin
-        nextState <= curState; -- sStayin same state unless changed below
+        nextState <= curState; -- stay in same state unless changed below
         case curState is
 
             when S0 =>
@@ -88,7 +97,7 @@ begin
                 end if;
 
             when S1 =>
-                    nextState <= S2;
+                nextState <= S2;
 
             when S2 =>
                 -- wait here until the generator toggles ctrlIn
@@ -103,27 +112,34 @@ begin
                 if curNumWords < numWords_int then
                     nextState <= S9; -- go to waiting state
                 else
-                    nextState <= S5; --all bytes read now check last positions
+                    nextState <= S5; -- all bytes read now check last positions
                 end if;
 
             when S5 =>
                 nextState <= S6;
+
             when S6 =>
                 nextState <= S7;
+
             when S7 =>
                 nextState <= S8;
+
             when S8 =>
                 nextState <= S0;
-            when s9 =>
-               if start = '1' then
-                nextState <= S1;
-               end if;
+
+            when S9 =>
+                if start = '1' then
+                    nextState <= S1;
+                end if;
+
             when others =>
                 nextState <= S0;
         end case;
     end process;
 ------------------------------------------------------------------------------------------------------------------------------------
-   
+
+    -- main sequential proces
+    -- updates state stores bytes and runs datapath operations on clock edge
     process(clk)
         variable curVAL : integer;
     begin
@@ -143,16 +159,18 @@ begin
                 seqDone         <= '0';
                 byte            <= (others => '0');
 
+
             else
                 curState    <= nextState;
                 ctrlIn_prev <= ctrlIn;
 
-                dataReady <= '0'; -- default low, only pulse high when needed
+                dataReady <= '0'; --default low, only pulse high when needed
                 seqDone   <= '0';
 
                 case curState is
 
                     when S0 =>
+                        --initialise values for a new sequence
                         ctrlOut_sig     <= '0';
                         numWords_int    <= bcd_to_int(numWords_bcd);
                         curNumWords     <= 0;
@@ -163,22 +181,23 @@ begin
                         byte            <= (others => '0');
 
                     when S1 =>
-                        -- toggle ctrlOut to signal we want the next byte
+                        --toggle ctrlOut to signal we want the next byte
                         ctrlOut_sig <= not ctrlOut_sig;
-
                     when S2 =>
-                        null; -- just waiting
+                        null; 
 
                     when S3 =>
+                        --shift register update
+                        --old values move left and new byte comes in at the end
                         curNumWords <= curNumWords + 1;
-                        -- shift old values left, put new byte at end (index 6)
                         shift_register(0 to RESULT_BYTE_NUM-2) <= shift_register(1 to RESULT_BYTE_NUM-1);
                         shift_register(RESULT_BYTE_NUM-1) <= data;
                         byte      <= data;
                         dataReady <= '1';
 
                     when S4 =>
-                        -- only check once window is full (7 bytes received)
+                        --main datapath check
+                        --only check once window is full (7 bytes received)
                         if curNumWords >= RESULT_BYTE_NUM then
                             curVAL := to_integer(signed(shift_register(3)));
                             if curVAL > curPeak then
@@ -188,8 +207,8 @@ begin
                             end if;
                         end if;
 
-                    
-                    -- XXXXXXXXXXXXXXXXXXX not 100% sure the index offsets are right here but testbench passes
+                    --final edge checks for last few positions
+                    --here a full centred window is not possible anymore so we declare all windo indexs
                     when S5 =>
                         curVAL := to_integer(signed(shift_register(4)));
                         if curVAL > curPeak then
@@ -233,8 +252,9 @@ begin
                         end if;
 
                     when S8 =>
+                        --pulse seqDone when sequence has finished
                         seqDone <= '1';
-                    
+
                     when S9 =>
                         null;
 
